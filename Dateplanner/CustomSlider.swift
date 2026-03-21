@@ -46,7 +46,7 @@ struct CustomSlider: View {
                                 let x = max(0, min(width, gesture.location.x))
                                 let percent = x / width
                                 let newValue = range.lowerBound + Double(percent) * (range.upperBound - range.lowerBound)
-                                let step: Double = 100
+                                let step: Double = range.upperBound <= 100 ? 5 : 100
                                 let snapped = (newValue / step).rounded() * step
                                 let clamped = min(max(snapped, range.lowerBound), range.upperBound)
                                 value = clamped
@@ -61,4 +61,3 @@ struct CustomSlider: View {
 #Preview {
     CustomSlider(value: .constant(5000), range: 2000...10000)
 }
-
