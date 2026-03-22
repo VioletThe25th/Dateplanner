@@ -1,0 +1,144 @@
+//
+//  DateGenerationService.swift
+//  Dateplanner
+//
+//  Created by Jeremy Bilger on 2026/03/21.
+//
+
+import Foundation
+
+final class DateGenerationService {
+    
+    func generateDatePlan(request: DateRequestData, places: [PlaceCandidate]) async throws -> GeneratedDatePlan {
+        
+        // Prepare URL
+        guard let url = URL(string: "http://localhost:3000/generate-date-plan") else {
+            throw URLError(.badURL)
+        }
+        
+        // Build request body
+        let body: [String: Any] = [
+            "request": [
+                "budget": request.budget,
+                "currency": request.currency.rawValue,
+                "locationName": request.locationName,
+                "mood": request.mood.rawValue,
+                "ideasForLLM": request.ideasForLLM
+            ],
+            "places": places.map { place in
+                [
+                    "name": place.name,
+                    "category": place.category,
+                    "distanceFromCenter": place.distanceFromCenter,
+                    "address": place.address
+                ]
+            }
+        ]
+        
+        // Create URLRequest
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
+        
+        // Call backend
+        let (data, _) = try await URLSession.shared.data(for: urlRequest)
+        
+        // Debug
+        if let jsonString = String(data: data, encoding: .utf8) {
+            print("=== BACKEND RESPONSE ===")
+            print(jsonString)
+        }
+        
+        // Decode response
+        let plan = try JSONDecoder().decode(GeneratedDatePlan.self, from: data)
+        return plan
+    }
+    
+    private func buildPrompt(request: DateRequestData, places: [PlaceCandidate]) -> String {
+        
+        let placesText = places.prefix(40).enumerated().map {index, place in
+            "\(index + 1). \(place.name) | \(place.category) | \(Int(place.distanceFromCenter))m | \(place.address)"
+        }.joined(separator: "\n")
+        
+        return """
+            You are an expert date planner.
+            
+            Create a date plan based on the following user preferences.
+            
+            USER:
+            - Budget: \(request.budget)\(request.currency.rawValue)
+            - Location: \(request.locationName)
+            - Mood: \(request.mood.rawValue)
+            - Ideas: \(request.ideasForLLM)
+            
+            AVAILABLE PLACES:
+            \(placesText)
+            
+            INSTRUCTIONS:
+            - Select 2 to 4 stops
+            - Create a logical and enjoyable flow
+            - Mix variety (e.g cafe, activity, restaurant)
+            - Prefer places that are reasonably close to each other
+            - Stay within budget
+            
+            OUTPUT FORMAT (JSON):
+            {
+                "title": "...",
+                "summary": "...",
+                "stops": [
+                    {
+                        "name": "...",
+                        "description": "...",
+                        "reason": "...",
+                        "category": "...",
+                        "address": "...",
+                        "latitude": 0,
+                        "longitude": 0,
+                        "order": 1,
+                        "estimatedPrice": 0
+                    }
+                ]
+            }
+            """
+    }
+    
+    private func mockPlan() -> GeneratedDatePlan {
+        return GeneratedDatePlan(
+                title: "Chill Evening in Tokyo",
+                summary: "A relaxed and cozy date with a mix of coffee and a nice dinner.",
+                stops: [
+                    GeneratedDateStop(
+                        name: "Shibuya Cafe",
+                        description: "Start with a calm coffee in a cozy atmosphere.",
+                        order: 1,
+                        reason: "Good place to start the date and talk",
+                        imageURL: nil,
+                        category: "cafe",
+                        address: "Shibuya",
+                        latitude: 0,
+                        longitude: 0,
+                        estimatedPrice: 1000
+                    ),
+                    GeneratedDateStop(
+                        name: "Local Restaurant",
+                        description: "Enjoy a nice dinner together.",
+                        order: 2,
+                        reason: "Main moment of the date",
+                        imageURL: nil,
+                        category: "restaurant",
+                        address: "Shibuya",
+                        latitude: 0,
+                        longitude: 0,
+                        estimatedPrice: 3000
+                    )
+                ]
+            )
+        
+    }
+    
+    private func parsePlan(from jsonString: String) throws -> GeneratedDatePlan {
+        let data = Data(jsonString.utf8)
+        return try JSONDecoder().decode(GeneratedDatePlan.self, from: data)
+    }
+}
