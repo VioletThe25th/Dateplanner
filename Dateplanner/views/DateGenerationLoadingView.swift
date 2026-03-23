@@ -1,3 +1,4 @@
+
 //
 //  DateGenerationLoadingView.swift
 //  Dateplanner
@@ -8,86 +9,305 @@
 import SwiftUI
 
 struct DateGenerationLoadingView: View {
-    
-    @State private var animateGradient = false
-    @State private var animateDots = 0
-    @State private var showContent = false
-    
+    @State private var isOrbiting = false
+    @State private var isPulsing = false
+    @State private var isShimmering = false
+    @State private var animateCards = false
+
+    private let loadingSteps: [(title: String, subtitle: String, icon: String)] = [
+        ("Finding nearby spots", "Scanning the best places around your selected area.", "mappin.and.ellipse"),
+        ("Matching the vibe", "Balancing budget, mood, and your own ideas.", "heart.circle"),
+        ("Building the route", "Arranging a smooth flow for the full date plan.", "sparkles")
+    ]
+
     var body: some View {
         ZStack {
-            
-            // Animated background
-            LinearGradient(
-                colors: [
-                    Color.black,
-                    Color.purple.opacity(0.7),
-                    Color.blue.opacity(0.6),
-                    Color.black
-                ],
-                startPoint: animateGradient ? .topLeading : .bottomTrailing,
-                endPoint: animateGradient ? .bottomTrailing : .topLeading
-            )
-            .ignoresSafeArea()
-            .animation(.easeInOut(duration: 6).repeatForever(autoreverses: true), value: animateGradient)
-            
-            // Floating blur circles
-            Circle()
-                .fill(Color.purple.opacity(0.3))
-                .frame(width: 300, height: 300)
-                .blur(radius: 120)
-                .offset(x: animateGradient ? -150 : 150, y: -200)
-                .animation(.easeInOut(duration: 8).repeatForever(autoreverses: true), value: animateGradient)
-            
-            Circle()
-                .fill(Color.blue.opacity(0.3))
-                .frame(width: 250, height: 250)
-                .blur(radius: 120)
-                .offset(x: animateGradient ? 150 : -150, y: 200)
-                .animation(.easeInOut(duration: 10).repeatForever(autoreverses: true), value: animateGradient)
-            
-            VStack(spacing: 24) {
-                
+            BackgroundView()
+
+            VStack(spacing: 28) {
                 Spacer()
-                
-                // Title
-                Text("Planning your perfect date")
-                    .font(.title2.weight(.semibold))
-                    .foregroundColor(.white)
-                    .opacity(showContent ? 1 : 0)
-                    .offset(y: showContent ? 0 : 10)
-                    .animation(.easeOut(duration: 0.8), value: showContent)
-                
-                // Animated dots
-                HStack(spacing: 6) {
-                    ForEach(0..<3) { index in
-                        Circle()
-                            .frame(width: 6, height: 6)
-                            .foregroundColor(.white.opacity(0.8))
-                            .scaleEffect(animateDots == index ? 1.4 : 1)
-                            .opacity(animateDots == index ? 1 : 0.4)
-                            .animation(.easeInOut(duration: 0.4), value: animateDots)
-                    }
-                }
-                
-                // Subtitle
-                Text("Finding the best places around you")
-                    .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.7))
-                    .opacity(showContent ? 1 : 0)
-                    .animation(.easeOut(duration: 1.2), value: showContent)
-                
+
+                headerSection
+                animatedHero
+                progressSection
+                stepsSection
+
                 Spacer()
             }
-            .padding()
+            .padding(.horizontal, 24)
+            .padding(.vertical, 32)
         }
+        .preferredColorScheme(.dark)
         .onAppear {
-            animateGradient = true
-            showContent = true
-            
-            // Dot animation loop
-            Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { _ in
-                animateDots = (animateDots + 1) % 3
+            startAnimations()
+        }
+    }
+
+    private var headerSection: some View {
+        VStack(spacing: 12) {
+            Text("AI Date Planner")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.78))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(.ultraThinMaterial, in: Capsule(style: .continuous))
+                .overlay(
+                    Capsule(style: .continuous)
+                        .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                )
+
+            Text("Designing your date")
+                .font(.system(size: 34, weight: .bold, design: .rounded))
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.white)
+
+            Text("We are picking places, shaping the mood, and building a plan that feels natural.")
+                .font(.subheadline)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.white.opacity(0.66))
+                .frame(maxWidth: 320)
+        }
+    }
+
+    private var animatedHero: some View {
+        ZStack {
+            Circle()
+                .fill(Color.cyan.opacity(0.14))
+                .frame(width: 240, height: 240)
+                .blur(radius: 22)
+                .scaleEffect(isPulsing ? 1.05 : 0.92)
+
+            Circle()
+                .fill(Color.pink.opacity(0.10))
+                .frame(width: 180, height: 180)
+                .blur(radius: 18)
+                .scaleEffect(isPulsing ? 0.94 : 1.08)
+
+            Circle()
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.06),
+                            Color.white.opacity(0.25),
+                            Color.white.opacity(0.06)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    style: StrokeStyle(lineWidth: 1.2, dash: [5, 10])
+                )
+                .frame(width: 220, height: 220)
+
+            orbitDots(radius: 110)
+                .rotationEffect(.degrees(isOrbiting ? 360 : 0))
+
+            orbitDots(radius: 78, dotSize: 10, colors: [Color.pink.opacity(0.95), Color.orange.opacity(0.75)])
+                .rotationEffect(.degrees(isOrbiting ? -360 : 0))
+
+            centerCore
+        }
+        .frame(height: 280)
+    }
+
+    private var centerCore: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 34, style: .continuous)
+                .fill(Color.white.opacity(0.10))
+                .background(
+                    RoundedRectangle(cornerRadius: 34, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                )
+
+            RoundedRectangle(cornerRadius: 34, style: .continuous)
+                .stroke(Color.white.opacity(0.10), lineWidth: 1)
+
+            VStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.cyan.opacity(0.95), Color.blue.opacity(0.78)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 74, height: 74)
+                        .shadow(color: Color.cyan.opacity(0.42), radius: 18, x: 0, y: 10)
+
+                    Image(systemName: "heart.text.square.fill")
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+
+                HStack(spacing: 10) {
+                    detailPill(icon: "mappin.circle.fill", text: "Nearby")
+                    detailPill(icon: "sparkles", text: "AI")
+                    detailPill(icon: "point.topleft.down.curvedto.point.bottomright.up.fill", text: "Flow")
+                }
             }
+            .padding(22)
+        }
+        .frame(width: 210, height: 170)
+        .shadow(color: .black.opacity(0.18), radius: 18, x: 0, y: 12)
+    }
+
+    private var progressSection: some View {
+        VStack(spacing: 10) {
+            GeometryReader { proxy in
+                let width = proxy.size.width
+
+                ZStack(alignment: .leading) {
+                    Capsule(style: .continuous)
+                        .fill(Color.white.opacity(0.08))
+
+                    Capsule(style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.clear,
+                                    Color.cyan.opacity(0.25),
+                                    Color.white.opacity(0.92),
+                                    Color.pink.opacity(0.35),
+                                    Color.clear
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: width * 0.42)
+                        .offset(x: isShimmering ? width : -width * 0.42)
+                        .blur(radius: 0.2)
+                }
+            }
+            .frame(height: 8)
+            .clipShape(Capsule(style: .continuous))
+
+            Text("Generating a personalized plan...")
+                .font(.footnote)
+                .foregroundStyle(.white.opacity(0.58))
+        }
+        .frame(maxWidth: 320)
+    }
+
+    private var stepsSection: some View {
+        VStack(spacing: 12) {
+            ForEach(Array(loadingSteps.enumerated()), id: \.offset) { index, step in
+                HStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.white.opacity(0.10))
+                            .frame(width: 42, height: 42)
+
+                        Image(systemName: step.icon)
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.88))
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(step.title)
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(.white)
+
+                        Text(step.subtitle)
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.62))
+                            .lineLimit(2)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Circle()
+                        .fill(Color.cyan.opacity(0.92))
+                        .frame(width: 8, height: 8)
+                        .shadow(color: Color.cyan.opacity(0.48), radius: 8, x: 0, y: 0)
+                        .scaleEffect(animateCards ? 1.0 : 0.7)
+                        .opacity(animateCards ? 1.0 : 0.45)
+                        .animation(
+                            .easeInOut(duration: 1.15)
+                            .repeatForever(autoreverses: true)
+                            .delay(Double(index) * 0.24),
+                            value: animateCards
+                        )
+                }
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(Color.white.opacity(0.10))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.14), radius: 12, x: 0, y: 8)
+                .scaleEffect(animateCards ? 1.0 : 0.985)
+                .opacity(animateCards ? 1.0 : 0.82)
+                .animation(
+                    .easeInOut(duration: 1.15)
+                    .repeatForever(autoreverses: true)
+                    .delay(Double(index) * 0.24),
+                    value: animateCards
+                )
+            }
+        }
+        .frame(maxWidth: 420)
+    }
+
+    private func orbitDots(
+        radius: CGFloat,
+        dotSize: CGFloat = 12,
+        colors: [Color] = [Color.cyan.opacity(0.95), Color.blue.opacity(0.75)]
+    ) -> some View {
+        ZStack {
+            ForEach(0..<3, id: \.self) { index in
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: colors,
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: dotSize, height: dotSize)
+                    .shadow(color: colors.first?.opacity(0.45) ?? .clear, radius: 8, x: 0, y: 0)
+                    .offset(y: -radius)
+                    .rotationEffect(.degrees(Double(index) * 120))
+            }
+        }
+        .animation(.linear(duration: 6).repeatForever(autoreverses: false), value: isOrbiting)
+    }
+
+    private func detailPill(icon: String, text: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+            Text(text)
+        }
+        .font(.caption.weight(.medium))
+        .foregroundStyle(.white.opacity(0.78))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            Capsule(style: .continuous)
+                .fill(Color.white.opacity(0.08))
+        )
+    }
+
+    private func startAnimations() {
+        guard !isOrbiting else { return }
+
+        withAnimation(.linear(duration: 8).repeatForever(autoreverses: false)) {
+            isOrbiting = true
+        }
+
+        withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true)) {
+            isPulsing = true
+        }
+
+        withAnimation(.linear(duration: 1.8).repeatForever(autoreverses: false)) {
+            isShimmering = true
+        }
+
+        withAnimation(.easeInOut(duration: 1.15).repeatForever(autoreverses: true)) {
+            animateCards = true
         }
     }
 }
