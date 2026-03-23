@@ -11,8 +11,10 @@ final class DateGenerationService {
     
     func generateDatePlan(request: DateRequestData, places: [PlaceCandidate]) async throws -> GeneratedDatePlan {
         
+        
+        /// URL LOCAL : "http://localhost:3000/generate-date-plan"
         // Prepare URL
-        guard let url = URL(string: "http://localhost:3000/generate-date-plan") else {
+        guard let url = URL(string: "https://dateplanner-back.onrender.com/generate-date-plan") else {
             throw URLError(.badURL)
         }
         
@@ -42,7 +44,12 @@ final class DateGenerationService {
         urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
         
         // Call backend
-        let (data, _) = try await URLSession.shared.data(for: urlRequest)
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              200..<300 ~= httpResponse.statusCode else {
+            throw URLError(.badServerResponse)
+        }
         
         // Debug
         if let jsonString = String(data: data, encoding: .utf8) {
@@ -78,10 +85,16 @@ final class DateGenerationService {
             INSTRUCTIONS:
             - Select 2 to 4 stops
             - Create a logical and enjoyable flow
-            - Mix variety (e.g cafe, activity, restaurant)
+            - Mix variety when possible (e.g cafe, activity, restaurant)
             - Prefer places that are reasonably close to each other
             - Stay within budget
+            - Use ONLY places from the AVAILABLE PLACES list above
+            - NEVER invent, rename, or substitute a place
+            - Keep the exact name, category, address, latitude, and longitude of each selected place from the provided data
+            - If there are not enough good options, use fewer stops rather than inventing new ones
+            - If the list is empty, return an empty stops array
             
+            IMPORTANT: Every stop in the JSON must match one place from AVAILABLE PLACES exactly.
             OUTPUT FORMAT (JSON):
             {
                 "title": "...",
@@ -92,7 +105,7 @@ final class DateGenerationService {
                         "description": "...",
                         "reason": "...",
                         "category": "...",
-                        "address": "...",
+                        "address": "Use the exact address from AVAILABLE PLACES",
                         "latitude": 0,
                         "longitude": 0,
                         "order": 1,

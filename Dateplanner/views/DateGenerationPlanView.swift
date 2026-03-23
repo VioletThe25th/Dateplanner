@@ -8,20 +8,20 @@
 import SwiftUI
 
 struct DateGenerationPlanView: View {
-    let plan: DisplayableDatePlan
+    let plan: GeneratedDatePlan
     @Environment(\.dismiss) private var dismiss
     
-    private var orderedStops: [DisplayableDateStop] {
-        plan.stops.sorted { $0.stop.order < $1.stop.order }
+    private var orderedStops: [GeneratedDateStop] {
+        plan.stops.sorted { $0.order < $1.order }
     }
     
     private var totalEstimatedPrice: Int {
-        orderedStops.compactMap { $0.stop.estimatedPrice }.reduce(0, +)
+        orderedStops.compactMap { $0.estimatedPrice }.reduce(0, +)
     }
     
     private var estimatedDurationMinutes: Int {
         let stopsMinutes = orderedStops.reduce(0) { partialResult, stop in
-            partialResult + estimatedMinutes(for: stop.stop.category)
+            partialResult + estimatedMinutes(for: stop.category)
         }
         let transferMinutes = max(orderedStops.count - 1, 0) * 12
         return stopsMinutes + transferMinutes
@@ -119,7 +119,7 @@ struct DateGenerationPlanView: View {
         }
     }
     
-    private func stopCard(for stop: DisplayableDateStop, index: Int) -> some View {
+    private func stopCard(for stop: GeneratedDateStop, index: Int) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 14) {
                 stopImage(for: stop)
@@ -127,12 +127,12 @@ struct DateGenerationPlanView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(stop.stop.name)
+                            Text(stop.name)
                                 .font(.headline.weight(.semibold))
                                 .foregroundStyle(.white)
                                 .lineLimit(2)
                             
-                            if let address = stop.stop.address {
+                            if let address = stop.address {
                                 Label(address, systemImage: "mappin.and.ellipse")
                                     .font(.caption)
                                     .foregroundStyle(.white.opacity(0.62))
@@ -153,17 +153,17 @@ struct DateGenerationPlanView: View {
                             )
                     }
                     
-                    Text(stop.stop.description)
+                    Text(stop.description)
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.82))
                         .lineLimit(3)
                     
                     HStack(spacing: 10) {
-                        if let estimatedPrice = stop.stop.estimatedPrice {
+                        if let estimatedPrice = stop.estimatedPrice {
                             infoPill(icon: "yensign.circle.fill", text: "\(estimatedPrice)")
                         }
                         
-                        if let category = stop.stop.category {
+                        if let category = stop.category {
                             infoPill(icon: iconName(for: category), text: displayName(for: category))
                         }
                         
@@ -176,7 +176,7 @@ struct DateGenerationPlanView: View {
                 }
             }
             
-            Text(stop.stop.reason)
+            Text(stop.reason)
                 .font(.footnote)
                 .foregroundStyle(.white.opacity(0.62))
         }
@@ -215,17 +215,29 @@ struct DateGenerationPlanView: View {
         .padding(.vertical, 8)
     }
     
-    private func stopImage(for stop: DisplayableDateStop) -> some View {
+    private func stopImage(for stop: GeneratedDateStop) -> some View {
         ZStack(alignment: .bottomLeading) {
-            if let image = stop.image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
+            if let imageURL = stop.imageURL,
+               let url = URL(string: imageURL) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        placeholderImage(for: stop)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        placeholderImage(for: stop)
+                    @unknown default:
+                        placeholderImage(for: stop)
+                    }
+                }
             } else {
                 placeholderImage(for: stop)
             }
             
-            if let estimatedPrice = stop.stop.estimatedPrice {
+            if let estimatedPrice = stop.estimatedPrice {
                 HStack(spacing: 4) {
                     Image(systemName: "yensign.circle.fill")
                     Text("\(estimatedPrice)")
@@ -247,8 +259,8 @@ struct DateGenerationPlanView: View {
     }
     
     @ViewBuilder
-    private func placeholderImage(for stop: DisplayableDateStop) -> some View {
-        let category = stop.stop.category?.lowercased() ?? ""
+    private func placeholderImage(for stop: GeneratedDateStop) -> some View {
+        let category = stop.category?.lowercased() ?? ""
         let icon = iconName(for: category)
         let gradient = gradientColors(for: category)
         
@@ -390,54 +402,45 @@ struct DateGenerationPlanView: View {
 
 #Preview {
     DateGenerationPlanView(
-        plan: DisplayableDatePlan(
+        plan: GeneratedDatePlan(
             title: "Romantic night in Shibuya",
             summary: "A calm and romantic evening with soft transitions between each stop.",
             stops: [
-                DisplayableDateStop(
-                    stop: GeneratedDateStop(
-                        name: "Aquarium Tokyo",
-                        description: "Start with a calm visit to enjoy an enchanting underwater world.",
-                        order: 1,
-                        reason: "A gentle first stop that makes the date feel special right away",
-                        imageURL: nil,
-                        category: "aquarium",
-                        address: "Shibuya",
-                        latitude: 35.66,
-                        longitude: 139.70,
-                        estimatedPrice: 400
-                    ),
-                    image: nil
+                GeneratedDateStop(
+                    name: "Aquarium Tokyo",
+                    description: "Start with a calm visit to enjoy an enchanting underwater world.",
+                    order: 1,
+                    reason: "A gentle first stop that makes the date feel special right away",
+                    imageURL: nil,
+                    category: "aquarium",
+                    address: "Shibuya",
+                    latitude: 35.66,
+                    longitude: 139.70,
+                    estimatedPrice: 400
                 ),
-                DisplayableDateStop(
-                    stop: GeneratedDateStop(
-                        name: "Sushi Bar UMAI",
-                        description: "Enjoy a relaxed dinner together in a cozy atmosphere.",
-                        order: 2,
-                        reason: "A warm dinner stop to keep the date intimate and memorable",
-                        imageURL: nil,
-                        category: "restaurant",
-                        address: "Shibuya",
-                        latitude: 35.65,
-                        longitude: 139.71,
-                        estimatedPrice: 4400
-                    ),
-                    image: nil
+                GeneratedDateStop(
+                    name: "Sushi Bar UMAI",
+                    description: "Enjoy a relaxed dinner together in a cozy atmosphere.",
+                    order: 2,
+                    reason: "A warm dinner stop to keep the date intimate and memorable",
+                    imageURL: nil,
+                    category: "restaurant",
+                    address: "Shibuya",
+                    latitude: 35.65,
+                    longitude: 139.71,
+                    estimatedPrice: 4400
                 ),
-                DisplayableDateStop(
-                    stop: GeneratedDateStop(
-                        name: "Night Walk",
-                        description: "Finish with a short walk and talk through the city lights.",
-                        order: 3,
-                        reason: "A smooth ending that feels romantic without rushing",
-                        imageURL: nil,
-                        category: "park",
-                        address: "Shibuya",
-                        latitude: 35.651,
-                        longitude: 139.709,
-                        estimatedPrice: 0
-                    ),
-                    image: nil
+                GeneratedDateStop(
+                    name: "Night Walk",
+                    description: "Finish with a short walk and talk through the city lights.",
+                    order: 3,
+                    reason: "A smooth ending that feels romantic without rushing",
+                    imageURL: nil,
+                    category: "park",
+                    address: "Shibuya",
+                    latitude: 35.651,
+                    longitude: 139.709,
+                    estimatedPrice: 0
                 )
             ]
         )

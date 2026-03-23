@@ -240,8 +240,6 @@ struct DatePickerView: View {
     @State private var showGeneratedPlan = false
     @State private var isGeneratingPlan = false
     @State private var generationErrorMessage: String? = nil
-    @State private var displayablePlan: DisplayableDatePlan? = nil
-    private let imageService = PlaceImageService()
     
     private let mapSearchService = MapSearchService()
     private let dateService = DateGenerationService()
@@ -487,7 +485,7 @@ struct DatePickerView: View {
                     updateMapPreviewCamera()
                 }
                 .onChange(of: isGeneratingPlan) { _, newValue in
-                    if !newValue, displayablePlan != nil {
+                    if !newValue, generatedPlan != nil {
                         showGeneratedPlan = true
                     }
                 }
@@ -496,7 +494,7 @@ struct DatePickerView: View {
                     DateGenerationLoadingView()
                 }
                 .fullScreenCover(isPresented: $showGeneratedPlan, onDismiss: {
-                    displayablePlan = nil
+                    generatedPlan = nil
                 }) {
                     generatedPlanDestination
                 }
@@ -534,8 +532,8 @@ struct DatePickerView: View {
     
     @ViewBuilder
     private var generatedPlanDestination: some View {
-        if let displayablePlan {
-            DateGenerationPlanView(plan: displayablePlan)
+        if let generatedPlan {
+            DateGenerationPlanView(plan: generatedPlan)
         } else {
             ZStack {
                 Color.black.ignoresSafeArea()
@@ -585,21 +583,14 @@ struct DatePickerView: View {
                 
                 let plan = try await dateService.generateDatePlan(request: requestData, places: results)
                 
-                // Enrich with images
-                var displayStops: [DisplayableDateStop] = []
-                for stop in plan.stops {
-                    let image = await imageService.fetchImage(for: stop)
-                    displayStops.append(DisplayableDateStop(stop: stop, image: image))
+                let elapsed = Date().timeIntervalSince(startedAt)
+                if elapsed < 2 {
+                    let remaining = 2 - elapsed
+                    try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
                 }
                 
-                let displayPlan = DisplayableDatePlan(
-                    title: plan.title,
-                    summary: plan.summary,
-                    stops: displayStops
-                )
-                
                 await MainActor.run {
-                    displayablePlan = displayPlan
+                    generatedPlan = plan
                     isGeneratingPlan = false
                 }
                 
