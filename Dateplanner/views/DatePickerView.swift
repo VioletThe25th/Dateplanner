@@ -5,9 +5,7 @@
 //  Created by Jeremy Bilger on 2026/03/20.
 //
 
-
 import SwiftUI
-import _LocationEssentials
 import MapKit
 
 enum DateMood: String, CaseIterable, Identifiable {
@@ -15,7 +13,7 @@ enum DateMood: String, CaseIterable, Identifiable {
     case romantic = "Romantic"
     case fun = "Fun"
     case adventure = "Adventure"
-    
+
     var id: String { rawValue }
 }
 
@@ -23,7 +21,7 @@ enum CurrencyOption: String, CaseIterable, Identifiable {
     case yen = "¥"
     case dollar = "$"
     case euro = "€"
-    
+
     var id: String { rawValue }
 }
 
@@ -44,13 +42,15 @@ private struct CurrencyPressPicker: View {
     private var currencyMenu: some View {
         HStack(spacing: itemSpacing) {
             ForEach(CurrencyOption.allCases) { currency in
-                let isHovered = (hoveredCurrency == currency)
+                let isHovered = hoveredCurrency == currency
+
                 Text(currency.rawValue)
                     .font(.title3.weight(.semibold))
-                    .foregroundStyle(isHovered ? Color.black.opacity(0.9) : Color.white.opacity(0.9))
+                    .foregroundStyle(isHovered ? Color.black.opacity(0.92) : Color.white.opacity(0.92))
                     .frame(width: itemSize, height: itemSize)
                     .background(
-                        Circle().fill(isHovered ? Color.white : Color.white.opacity(0.10))
+                        Circle()
+                            .fill(isHovered ? Color.white : Color.white.opacity(0.10))
                     )
             }
         }
@@ -60,14 +60,14 @@ private struct CurrencyPressPicker: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(Color.white.opacity(0.10), lineWidth: 1)
         )
-        .offset(x: 0, y: itemSize + 25)
+        .offset(y: itemSize + 24)
         .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .bottomTrailing)))
     }
 
     var body: some View {
         Text(selectedCurrency.rawValue)
             .font(.headline.weight(.semibold))
-            .foregroundStyle(.white.opacity(0.9))
+            .foregroundStyle(.white.opacity(0.92))
             .frame(width: 42, height: 42)
             .background(.ultraThinMaterial, in: Circle())
             .overlay(
@@ -99,14 +99,6 @@ private struct CurrencyPressPicker: View {
                     }
             )
             .animation(.easeInOut(duration: 0.18), value: isExpanded)
-    }
-
-    private func currencyForeground(for currency: CurrencyOption) -> Color {
-        hoveredCurrency == currency ? Color.black.opacity(0.9) : Color.white.opacity(0.9)
-    }
-
-    private func currencyBackground(for currency: CurrencyOption) -> Color {
-        hoveredCurrency == currency ? Color.white : Color.white.opacity(0.10)
     }
 
     private func currency(at location: CGPoint) -> CurrencyOption? {
@@ -146,20 +138,49 @@ private struct MoodChip: View {
     var body: some View {
         Button(action: action) {
             Text(mood.rawValue)
-                .font(.title2.weight(.semibold))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
+                .font(.headline.weight(.semibold))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 11)
                 .background(
-                    Capsule()
-                        .fill(isSelected ? Color.white.opacity(0.9) : Color.white.opacity(0.12))
+                    Capsule(style: .continuous)
+                        .fill(isSelected ? Color.white : Color.white.opacity(0.10))
                 )
                 .overlay(
-                    Capsule()
-                        .stroke(Color.white.opacity(isSelected ? 0.0 : 0.25), lineWidth: 1)
+                    Capsule(style: .continuous)
+                        .stroke(Color.white.opacity(isSelected ? 0.0 : 0.16), lineWidth: 1)
                 )
-                .foregroundStyle(isSelected ? Color.black : Color.white.opacity(0.85))
+                .foregroundStyle(isSelected ? Color.black.opacity(0.92) : Color.white.opacity(0.86))
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct PickerSectionHeader: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.90))
+                    .frame(width: 34, height: 34)
+                    .background(
+                        Circle()
+                            .fill(Color.white.opacity(0.10))
+                    )
+
+                Text(title)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.white)
+            }
+
+            Text(subtitle)
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.60))
+        }
     }
 }
 
@@ -174,20 +195,10 @@ private struct MapPreview: View {
     var body: some View {
         ZStack {
             if isPreview {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.white.opacity(0.06))
-
-                VStack(spacing: 8) {
-                    Image(systemName: "map.fill")
-                        .font(.title2)
-                        .foregroundStyle(.white.opacity(0.75))
-
-                    Text("Map disabled in Preview")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.6))
-                }
+                placeholder(title: "Map disabled in Preview")
             } else if let lat = selectedLatitude, let lon = selectedLongitude {
-                let coordinate: CLLocationCoordinate2D = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+                let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+
                 Map(position: $position) {
                     MapCircle(center: coordinate, radius: radius)
                         .foregroundStyle(.blue.opacity(0.14))
@@ -199,26 +210,32 @@ private struct MapPreview: View {
                 .environment(\.colorScheme, .dark)
                 .allowsHitTesting(false)
             } else {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.white.opacity(0.06))
-
-                VStack(spacing: 8) {
-                    Image(systemName: "map.fill")
-                        .font(.title2)
-                        .foregroundStyle(.white.opacity(0.75))
-
-                    Text("Map preview will appear here")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.6))
-                }
+                placeholder(title: "Map preview will appear here")
             }
         }
-        .frame(height: 120)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .frame(height: 146)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
+    }
+
+    private func placeholder(title: String) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color.white.opacity(0.06))
+
+            VStack(spacing: 8) {
+                Image(systemName: "map.fill")
+                    .font(.title2)
+                    .foregroundStyle(.white.opacity(0.72))
+
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.58))
+            }
+        }
     }
 }
 
@@ -231,19 +248,19 @@ struct DatePickerView: View {
     @State private var selectedLatitude: Double? = nil
     @State private var selectedLongitude: Double? = nil
     @State private var mapPreviewPosition: MapCameraPosition = .automatic
-    
+
     @State private var selectedMood: DateMood? = nil
     @State private var userIdeas: String = ""
-    
+
     @State private var places: [PlaceCandidate] = []
     @State private var generatedPlan: GeneratedDatePlan? = nil
     @State private var showGeneratedPlan = false
     @State private var isGeneratingPlan = false
     @State private var generationErrorMessage: String? = nil
-    
+
     private let mapSearchService = MapSearchService()
     private let dateService = DateGenerationService()
-    
+
     #if DEBUG
     private let isPreview = ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
     #else
@@ -258,71 +275,123 @@ struct DatePickerView: View {
             _selectedLocationRadius = State(initialValue: 1000)
         }
     }
-    
-    private var budgetHeader: some View {
-        HStack {
-            Image(systemName: "dollarsign.circle.fill")
-                .foregroundStyle(Color.yellow.opacity(0.8))
-            Text("Budget")
-                .font(.title)
-                .foregroundStyle(.white.opacity(0.8))
-            Spacer()
-            CurrencyPressPicker(selectedCurrency: $selectedCurrency)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-    
-    private var moodSection: some View {
-        VStack {
-            HStack {
-                Image(systemName: "heart.circle")
-                    .foregroundStyle(Color.red.opacity(0.8))
-                Text("Mood")
-                    .font(.title)
-                    .foregroundStyle(.white.opacity(0.8))
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(DateMood.allCases) { mood in
-                        let isSelected = (selectedMood == mood)
-                        MoodChip(mood: mood, isSelected: isSelected) {
-                            if isSelected { selectedMood = nil } else { selectedMood = mood }
-                        }
-                    }
-                }
+    private var isReadyToGenerate: Bool {
+        selectedLatitude != nil && selectedLongitude != nil && selectedMood != nil
+    }
+
+    private var locationSummaryText: String {
+        selectedLocation == "Choose an area" ? "Area not selected" : "\(selectedLocation) · \(Int(selectedLocationRadius))m"
+    }
+
+    private var readinessText: String {
+        if isReadyToGenerate {
+            return "Everything looks ready. Generate your personalized date plan."
+        }
+
+        var missing: [String] = []
+        if selectedLatitude == nil || selectedLongitude == nil {
+            missing.append("location")
+        }
+        if selectedMood == nil {
+            missing.append("mood")
+        }
+
+        if missing.isEmpty {
+            return "Adjust your preferences before generating."
+        } else {
+            return "Choose your \(missing.joined(separator: " and ")) to continue."
+        }
+    }
+
+    private var budgetSection: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .top) {
+                PickerSectionHeader(
+                    icon: "dollarsign.circle.fill",
+                    title: "Budget",
+                    subtitle: "Set the budget range for the whole date."
+                )
+
+                Spacer(minLength: 16)
+
+                CurrencyPressPicker(selectedCurrency: $selectedCurrency)
             }
+
+            HStack(alignment: .lastTextBaseline, spacing: 6) {
+                Text(selectedCurrency.rawValue)
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(.white.opacity(0.86))
+
+                Text("\(selectedBudget)")
+                    .font(.system(size: 42, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+            }
+
+            CustomSlider(value: $budget, range: budgetRange)
+
+            HStack {
+                Text("\(selectedCurrency.rawValue)\(Int(budgetRange.lowerBound))")
+                Spacer()
+                Text("\(selectedCurrency.rawValue)\(Int(budgetRange.upperBound))")
+            }
+            .font(.caption.weight(.medium))
+            .foregroundStyle(.white.opacity(0.48))
         }
         .cardBackground()
     }
-    
-    private var locationSection: some View {
-        VStack {
-            HStack {
-                Image(systemName: "mappin.circle.fill")
-                    .foregroundStyle(Color.yellow.opacity(0.8))
-                NavigationLink {
-                    LocationSelectionView(
-                        selectedLocation: $selectedLocation,
-                        selectedLocationRadius: $selectedLocationRadius,
-                        selectedLatitude: $selectedLatitude,
-                        selectedLongitude: $selectedLongitude
-                    )
-                } label: {
-                    Text("Location")
-                        .font(.title)
-                        .foregroundStyle(.white.opacity(0.8))
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .foregroundStyle(.white.opacity(0.8))
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text("Current area: \(selectedLocation) • \(Int(selectedLocationRadius))m")
-                .foregroundStyle(.white.opacity(0.6))
-                .frame(maxWidth: .infinity, alignment: .leading)
+    private var locationSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            PickerSectionHeader(
+                icon: "mappin.circle.fill",
+                title: "Location",
+                subtitle: "Pick the area where the date should happen."
+            )
+
+            NavigationLink {
+                LocationSelectionView(
+                    selectedLocation: $selectedLocation,
+                    selectedLocationRadius: $selectedLocationRadius,
+                    selectedLatitude: $selectedLatitude,
+                    selectedLongitude: $selectedLongitude
+                )
+            } label: {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(selectedLocation == "Choose an area" ? "Choose an area" : selectedLocation)
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+
+                        Text(selectedLocation == "Choose an area" ? "Open the map to select a place and radius." : "Search radius: \(Int(selectedLocationRadius))m")
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.56))
+                            .lineLimit(1)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.bold))
+                        .foregroundStyle(.white.opacity(0.72))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Color.white.opacity(0.08))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+
+            Text(locationSummaryText)
+                .font(.footnote)
+                .foregroundStyle(.white.opacity(0.50))
 
             MapPreview(
                 isPreview: isPreview,
@@ -336,177 +405,199 @@ struct DatePickerView: View {
         .cardBackground()
     }
 
-    private var ideasSection: some View {
-        VStack {
-            HStack {
-                Image(systemName: "lightbulb.max.fill")
-                    .foregroundStyle(Color.white.opacity(0.8))
-                Text("Any ideas?")
-                    .font(.title)
-                    .foregroundStyle(.white.opacity(0.8))
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+    private var moodSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            PickerSectionHeader(
+                icon: "heart.circle.fill",
+                title: "Mood",
+                subtitle: "Choose the overall energy you want for the date."
+            )
 
-            VStack(alignment: .leading, spacing: 10) {
-                TextField("Tell us your ideas (e.g. cinema, aquarium, ramen…)", text: $userIdeas)
-                    .textFieldStyle(.plain)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color.white.opacity(0.10))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(Color.white.opacity(0.20), lineWidth: 1)
-                    )
-                    .foregroundStyle(.white.opacity(0.9))
-                    .submitLabel(.done)
-
-                HStack {
-                    Image(systemName: "character.cursor.ibeam")
-                        .foregroundStyle(.white.opacity(0.5))
-                    Text("\(userIdeas.count) characters")
-                        .foregroundStyle(.white.opacity(0.5))
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(DateMood.allCases) { mood in
+                        MoodChip(mood: mood, isSelected: selectedMood == mood) {
+                            if selectedMood == mood {
+                                selectedMood = nil
+                            } else {
+                                selectedMood = mood
+                            }
+                        }
+                    }
                 }
-                .font(.footnote)
+                .padding(.vertical, 2)
             }
         }
         .cardBackground()
     }
-    
-    private var nextButtonOverlay: some View {
-        let isReady = (selectedLatitude != nil &&
-                       selectedLongitude != nil &&
-                       selectedMood != nil)
-        return AnyView(
+
+    private var ideasSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            PickerSectionHeader(
+                icon: "lightbulb.max.fill",
+                title: "Ideas",
+                subtitle: "Add optional hints like cinema, aquarium, ramen, or rooftop."
+            )
+
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.white.opacity(0.08))
+
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+
+                if userIdeas.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text("Tell us your ideas...")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.38))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 14)
+                        .allowsHitTesting(false)
+                }
+
+                TextEditor(text: $userIdeas)
+                    .scrollContentBackground(.hidden)
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.92))
+                    .frame(minHeight: 104)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+            }
+            .frame(minHeight: 104)
+
+            HStack {
+                Label("\(userIdeas.count) characters", systemImage: "character.cursor.ibeam")
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.46))
+
+                Spacer()
+
+                if !userIdeas.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text("Optional")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.50))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(Color.white.opacity(0.08))
+                        )
+                }
+            }
+        }
+        .cardBackground()
+    }
+
+    private var bottomCTA: some View {
+        VStack(spacing: 10) {
             Button {
                 startDateGeneration()
             } label: {
-                Image(systemName: "arrow.right")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.black.opacity(isReady ? 0.92 : 0.42))
-                    .frame(width: 54, height: 54)
-                    .background(
-                        Circle()
-                            .fill(Color.white.opacity(isReady ? 0.82 : 0.22))
-                    )
-                    .overlay(
-                        Circle()
-                            .stroke(Color.white.opacity(isReady ? 0.22 : 0.10), lineWidth: 1)
-                    )
-                    .shadow(color: Color.black.opacity(isReady ? 0.18 : 0.0), radius: 18, x: 0, y: 10)
+                HStack(spacing: 12) {
+                    Text("Generate plan")
+                        .font(.headline.weight(.semibold))
+
+                    Image(systemName: "arrow.right")
+                        .font(.headline.weight(.bold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 18)
+                .foregroundStyle(.black.opacity(isReadyToGenerate ? 0.92 : 0.45))
+                .background(
+                    (isReadyToGenerate ? Color.white : Color.white.opacity(0.26)),
+                    in: RoundedRectangle(cornerRadius: 24, style: .continuous)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(Color.white.opacity(isReadyToGenerate ? 0.22 : 0.10), lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(isReadyToGenerate ? 0.18 : 0.0), radius: 18, x: 0, y: 10)
             }
-            .scaleEffect(isReady ? 1.0 : 0.98)
-            .animation(.easeInOut(duration: 0.2), value: isReady)
-            .buttonStyle(.plain)
-            .padding(.trailing, 16)
-            .padding(.bottom, 16)
-            .disabled(!isReady)
-            .opacity(isReady ? 1.0 : 0.5)
+            .buttonStyle(PressScaleStyle())
+            .disabled(!isReadyToGenerate)
+
+            Text(readinessText)
+                .font(.footnote)
+                .foregroundStyle(.white.opacity(0.54))
+                .multilineTextAlignment(.center)
+        }
+        .padding(14)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
     }
 
     var body: some View {
-        NavigationStack() {
+        GeometryReader { proxy in
+            let horizontalPadding = proxy.size.width >= 768 ? 32.0 : 20.0
+
             ZStack {
                 BackgroundView()
-                
-                /// Main view
-                VStack (alignment: .leading){
-                    
-                    /// Title view
-                    HStack {
-                        Text("Create your date")
-                            .font(.largeTitle)
-                            .bold()
-                    }
-                    .foregroundStyle(.white.opacity(0.9))
-                    HStack {
-                        Text("What are you in the mood for? ")
-                        Image(systemName: "smallcircle.circle.fill")
-                    }
-                    .foregroundStyle(.white.opacity(0.8))
-                    
-                    Spacer()
-                    
-                    ScrollView(.vertical ,showsIndicators: false) {
-                        /// Budget view
-                        VStack {
-                            budgetHeader
-                            
-                            Text("\(selectedCurrency.rawValue)\(selectedBudget)")
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.white.opacity(0.6))
-                            
-                            CustomSlider(value: $budget, range: budgetRange)
-                            
-                            HStack {
-                                Text("\(Int(budgetRange.lowerBound))\(selectedCurrency.rawValue)")
-                                Spacer()
-                                Text("\(Int(budgetRange.upperBound))\(selectedCurrency.rawValue)")
-                            }
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.5))
-                        }
-                        .cardBackground()
-                        
+
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 18) {
+                        headerSection
+                        budgetSection
                         locationSection
-                        
                         moodSection
-                        
                         ideasSection
                     }
-                    .padding(.top, 20)
-                    
+                    .frame(maxWidth: 620)
+                    .padding(.horizontal, horizontalPadding)
+                    .padding(.top, 18)
+                    .padding(.bottom, 146)
+                    .frame(maxWidth: .infinity, alignment: .top)
                 }
-                .onAppear {
-                    budget = defaultBudget(for: selectedCurrency)
-                    selectedBudget = Int(budget)
-                    updateMapPreviewCamera()
-                }
-                .onChange(of: budget) { _, newValue in
-                    selectedBudget = Int(newValue)
-                }
-                .onChange(of: selectedCurrency) { oldValue, newValue in
-                    if oldValue != newValue {
-                        budget = defaultBudget(for: newValue)
-                        selectedBudget = Int(budget)
-                    }
-                }
-                .onChange(of: selectedLatitude) { _, _ in
-                    updateMapPreviewCamera()
-                }
-                .onChange(of: selectedLongitude) { _, _ in
-                    updateMapPreviewCamera()
-                }
-                .onChange(of: selectedLocationRadius) { _, _ in
-                    updateMapPreviewCamera()
-                }
-                .onChange(of: isGeneratingPlan) { _, newValue in
-                    if !newValue, generatedPlan != nil {
-                        showGeneratedPlan = true
-                    }
-                }
-                .padding(20)
-                .fullScreenCover(isPresented: $isGeneratingPlan) {
-                    DateGenerationLoadingView()
-                }
-                .fullScreenCover(isPresented: $showGeneratedPlan, onDismiss: {
-                    generatedPlan = nil
-                }) {
-                    generatedPlanDestination
-                }
-                .alert("Generation Error", isPresented: generationErrorBinding) {
-                    Button("OK", role: .cancel) { }
-                } message: {
-                    Text(generationErrorMessage ?? "Unknown error")
-                }
-                    
             }
-            .overlay(alignment: .bottomTrailing) {
-                nextButtonOverlay
+            .safeAreaInset(edge: .bottom) {
+                bottomCTA
+                    .frame(maxWidth: 620)
+                    .padding(.horizontal, horizontalPadding)
+                    .padding(.top, 12)
+                    .padding(.bottom, 16)
+            }
+            .onAppear {
+                budget = defaultBudget(for: selectedCurrency)
+                selectedBudget = Int(budget)
+                updateMapPreviewCamera()
+            }
+            .onChange(of: budget) { _, newValue in
+                selectedBudget = Int(newValue)
+            }
+            .onChange(of: selectedCurrency) { oldValue, newValue in
+                if oldValue != newValue {
+                    budget = defaultBudget(for: newValue)
+                    selectedBudget = Int(budget)
+                }
+            }
+            .onChange(of: selectedLatitude) { _, _ in
+                updateMapPreviewCamera()
+            }
+            .onChange(of: selectedLongitude) { _, _ in
+                updateMapPreviewCamera()
+            }
+            .onChange(of: selectedLocationRadius) { _, _ in
+                updateMapPreviewCamera()
+            }
+            .onChange(of: isGeneratingPlan) { _, newValue in
+                if !newValue, generatedPlan != nil {
+                    showGeneratedPlan = true
+                }
+            }
+            .fullScreenCover(isPresented: $isGeneratingPlan) {
+                DateGenerationLoadingView()
+            }
+            .fullScreenCover(isPresented: $showGeneratedPlan, onDismiss: {
+                generatedPlan = nil
+            }) {
+                generatedPlanDestination
+            }
+            .alert("Generation Error", isPresented: generationErrorBinding) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(generationErrorMessage ?? "Unknown error")
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -514,22 +605,87 @@ struct DatePickerView: View {
                         OptionsView()
                     } label: {
                         Image(systemName: "gearshape")
-                            .font(.title)
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(.white.opacity(0.88))
+                            .frame(width: 38, height: 38)
+                            .background(
+                                Circle()
+                                    .fill(Color.white.opacity(0.08))
+                            )
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                            )
                     }
-                    .font(.title3)
-                    .foregroundStyle(.white.opacity(0.9))
                 }
+            }
+            .toolbarTitleDisplayMode(.inline)
+            .preferredColorScheme(.dark)
+        }
+    }
+
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Date Setup")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.80))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(.ultraThinMaterial, in: Capsule(style: .continuous))
+                .overlay(
+                    Capsule(style: .continuous)
+                        .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                )
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Create your date")
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+
+                Text("Set the mood, budget, and area. We’ll turn that into a smooth date plan with nearby places and a natural flow.")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.62))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    summaryPill(icon: "banknote.fill", text: "\(selectedCurrency.rawValue)\(selectedBudget)")
+                    summaryPill(icon: "mappin.and.ellipse", text: selectedLocation == "Choose an area" ? "No area yet" : selectedLocation)
+                    summaryPill(icon: "heart.text.square.fill", text: selectedMood?.rawValue ?? "No mood yet")
+                }
+                .padding(.vertical, 2)
             }
         }
     }
-    
+
+    private func summaryPill(icon: String, text: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+            Text(text)
+                .lineLimit(1)
+        }
+        .font(.caption.weight(.medium))
+        .foregroundStyle(.white.opacity(0.76))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            Capsule(style: .continuous)
+                .fill(Color.white.opacity(0.08))
+        )
+        .overlay(
+            Capsule(style: .continuous)
+                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+        )
+    }
+
     private var generationErrorBinding: Binding<Bool> {
         Binding(
             get: { generationErrorMessage != nil },
             set: { if !$0 { generationErrorMessage = nil } }
         )
     }
-    
+
     @ViewBuilder
     private var generatedPlanDestination: some View {
         if let generatedPlan {
@@ -559,19 +715,19 @@ struct DatePickerView: View {
             return 50
         }
     }
-    
+
     private func startDateGeneration() {
         guard let requestData = buildRequestData() else { return }
-        
+
         generationErrorMessage = nil
         isGeneratingPlan = true
-        
+
         Task {
             let startedAt = Date()
-            
+
             do {
                 let results = try await mapSearchService.searchPlaces(for: requestData)
-                
+
                 await MainActor.run {
                     places = results
                     print(requestData.debugDescription)
@@ -580,27 +736,26 @@ struct DatePickerView: View {
                         print("\(index + 1). \(place.name) | \(place.category) | \(Int(place.distanceFromCenter))m | \(place.address)")
                     }
                 }
-                
+
                 let plan = try await dateService.generateDatePlan(request: requestData, places: results)
-                
+
                 let elapsed = Date().timeIntervalSince(startedAt)
                 if elapsed < 2 {
                     let remaining = 2 - elapsed
                     try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
                 }
-                
+
                 await MainActor.run {
                     generatedPlan = plan
                     isGeneratingPlan = false
                 }
-                
             } catch {
                 let elapsed = Date().timeIntervalSince(startedAt)
                 if elapsed < 2 {
                     let remaining = 2 - elapsed
                     try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
                 }
-                
+
                 await MainActor.run {
                     generationErrorMessage = error.localizedDescription
                     isGeneratingPlan = false
@@ -610,13 +765,12 @@ struct DatePickerView: View {
     }
 
     private func updateMapPreviewCamera() {
-
         guard let lat = selectedLatitude, let lon = selectedLongitude else {
             mapPreviewPosition = .automatic
             return
         }
 
-        let coordinate: CLLocationCoordinate2D = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+        let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
         let radiusInKilometers = max(selectedLocationRadius / 1000, 0.2)
         let latitudeDelta = max(radiusInKilometers * 0.018 * 2.4, 0.01)
         let longitudeDelta = max(radiusInKilometers * 0.022 * 2.4, 0.01)
@@ -635,7 +789,7 @@ struct DatePickerView: View {
             mapPreviewPosition = newRegion
         }
     }
-    
+
     private func buildRequestData() -> DateRequestData? {
         guard
             let latitude = selectedLatitude,
@@ -644,7 +798,7 @@ struct DatePickerView: View {
         else {
             return nil
         }
-        
+
         return DateRequestData(
             budget: selectedBudget,
             currency: selectedCurrency,
@@ -659,6 +813,7 @@ struct DatePickerView: View {
 }
 
 #Preview {
-    DatePickerView()
+    NavigationStack {
+        DatePickerView(debugMock: true)
+    }
 }
-
