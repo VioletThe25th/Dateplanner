@@ -8,150 +8,123 @@
 import Foundation
 
 final class DateGenerationService {
-    
+    private let session: URLSession
+    private let decoder: JSONDecoder
+    private let encoder: JSONEncoder
+
+    private let endpoint = "https://dateplanner-back.onrender.com/generate-date-plan"
+    private let requestTimeout: TimeInterval = 30
+
+    init(
+        session: URLSession = .shared,
+        decoder: JSONDecoder = JSONDecoder(),
+        encoder: JSONEncoder = JSONEncoder()
+    ) {
+        self.session = session
+        self.decoder = decoder
+        self.encoder = encoder
+    }
+
     func generateDatePlan(request: DateRequestData, places: [PlaceCandidate]) async throws -> GeneratedDatePlan {
-        
-        
-        /// URL LOCAL : "http://localhost:3000/generate-date-plan"
-        // Prepare URL
-        guard let url = URL(string: "https://dateplanner-back.onrender.com/generate-date-plan") else {
-            throw URLError(.badURL)
+        guard let url = URL(string: endpoint) else {
+            throw DateGenerationError.invalidEndpoint
         }
-        
-        // Build request body
-        let body: [String: Any] = [
-            "request": [
-                "budget": request.budget,
-                "currency": request.currency.rawValue,
-                "locationName": request.locationName,
-                "mood": request.mood.rawValue,
-                "ideasForLLM": request.ideasForLLM
-            ],
-            "places": places.map { place in
-                [
-                    "name": place.name,
-                    "category": place.category,
-                    "distanceFromCenter": place.distanceFromCenter,
-                    "address": place.address
-                ]
-            }
-        ]
-        
-        // Create URLRequest
-        var urlRequest = URLRequest(url: url)
+
+        let payload = GenerateDatePlanPayload(
+            request: RequestPayload(from: request),
+            places: places.map(PlacePayload.init)
+        )
+
+        var urlRequest = URLRequest(url: url, timeoutInterval: requestTimeout)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
-        
-        // Call backend
-        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Accept")
+        urlRequest.httpBody = try encoder.encode(payload)
 
-        guard let httpResponse = response as? HTTPURLResponse,
-              200..<300 ~= httpResponse.statusCode else {
-            throw URLError(.badServerResponse)
+        let (data, response) = try await session.data(for: urlRequest)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw DateGenerationError.invalidResponse
         }
-        
-        // Debug
+
+        guard 200..<300 ~= httpResponse.statusCode else {
+            let responseBody = String(data: data, encoding: .utf8)
+            throw DateGenerationError.unsuccessfulStatusCode(
+                statusCode: httpResponse.statusCode,
+                responseBody: responseBody
+            )
+        }
+
+        #if DEBUG
         if let jsonString = String(data: data, encoding: .utf8) {
             print("=== BACKEND RESPONSE ===")
             print(jsonString)
         }
-        
-        // Decode response
-        let plan = try JSONDecoder().decode(GeneratedDatePlan.self, from: data)
-        return plan
+        #endif
+
+        do {
+            return try decoder.decode(GeneratedDatePlan.self, from: data)
+        } catch {
+            throw DateGenerationError.decodingFailed(underlyingError: error)
+        }
     }
-    
-    private func buildPrompt(request: DateRequestData, places: [PlaceCandidate]) -> String {
-        
-        let placesText = places.prefix(40).enumerated().map {index, place in
-            "\(index + 1). \(place.name) | \(place.category) | \(Int(place.distanceFromCenter))m | \(place.address)"
-        }.joined(separator: "\n")
-        
-        return """
-            You are an expert date planner.
-            
-            Create a date plan based on the following user preferences.
-            
-            USER:
-            - Budget: \(request.budget)\(request.currency.rawValue)
-            - Location: \(request.locationName)
-            - Mood: \(request.mood.rawValue)
-            - Ideas: \(request.ideasForLLM)
-            
-            AVAILABLE PLACES:
-            \(placesText)
-            
-            INSTRUCTIONS:
-            - Select 2 to 4 stops
-            - Create a logical and enjoyable flow
-            - Mix variety when possible (e.g cafe, activity, restaurant)
-            - Prefer places that are reasonably close to each other
-            - Stay within budget
-            - Use ONLY places from the AVAILABLE PLACES list above
-            - NEVER invent, rename, or substitute a place
-            - Keep the exact name, category, address, latitude, and longitude of each selected place from the provided data
-            - If there are not enough good options, use fewer stops rather than inventing new ones
-            - If the list is empty, return an empty stops array
-            
-            IMPORTANT: Every stop in the JSON must match one place from AVAILABLE PLACES exactly.
-            OUTPUT FORMAT (JSON):
-            {
-                "title": "...",
-                "summary": "...",
-                "stops": [
-                    {
-                        "name": "...",
-                        "description": "...",
-                        "reason": "...",
-                        "category": "...",
-                        "address": "Use the exact address from AVAILABLE PLACES",
-                        "latitude": 0,
-                        "longitude": 0,
-                        "order": 1,
-                        "estimatedPrice": 0
-                    }
-                ]
+}
+
+private struct GenerateDatePlanPayload: Encodable {
+    let request: RequestPayload
+    let places: [PlacePayload]
+}
+
+private struct RequestPayload: Encodable {
+    let budget: Int
+    let currency: String
+    let locationName: String
+    let mood: String
+    let ideasForLLM: String
+
+    init(from request: DateRequestData) {
+        self.budget = request.budget
+        self.currency = request.currency.rawValue
+        self.locationName = request.locationName
+        self.mood = request.mood.rawValue
+        self.ideasForLLM = request.ideasForLLM
+    }
+}
+
+private struct PlacePayload: Encodable {
+    let name: String
+    let category: String
+    let distanceFromCenter: Double
+    let address: String
+
+    init(_ place: PlaceCandidate) {
+        self.name = place.name
+        self.category = place.category
+        self.distanceFromCenter = place.distanceFromCenter
+        self.address = place.address
+    }
+}
+
+private enum DateGenerationError: LocalizedError {
+    case invalidEndpoint
+    case invalidResponse
+    case unsuccessfulStatusCode(statusCode: Int, responseBody: String?)
+    case decodingFailed(underlyingError: Error)
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidEndpoint:
+            return "The date generation endpoint is invalid."
+        case .invalidResponse:
+            return "The server returned an invalid response."
+        case let .unsuccessfulStatusCode(statusCode, responseBody):
+            if let responseBody, !responseBody.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return "The server returned status \(statusCode): \(responseBody)"
+            } else {
+                return "The server returned status \(statusCode)."
             }
-            """
-    }
-    
-    private func mockPlan() -> GeneratedDatePlan {
-        return GeneratedDatePlan(
-                title: "Chill Evening in Tokyo",
-                summary: "A relaxed and cozy date with a mix of coffee and a nice dinner.",
-                stops: [
-                    GeneratedDateStop(
-                        name: "Shibuya Cafe",
-                        description: "Start with a calm coffee in a cozy atmosphere.",
-                        order: 1,
-                        reason: "Good place to start the date and talk",
-                        imageURL: nil,
-                        category: "cafe",
-                        address: "Shibuya",
-                        latitude: 0,
-                        longitude: 0,
-                        estimatedPrice: 1000
-                    ),
-                    GeneratedDateStop(
-                        name: "Local Restaurant",
-                        description: "Enjoy a nice dinner together.",
-                        order: 2,
-                        reason: "Main moment of the date",
-                        imageURL: nil,
-                        category: "restaurant",
-                        address: "Shibuya",
-                        latitude: 0,
-                        longitude: 0,
-                        estimatedPrice: 3000
-                    )
-                ]
-            )
-        
-    }
-    
-    private func parsePlan(from jsonString: String) throws -> GeneratedDatePlan {
-        let data = Data(jsonString.utf8)
-        return try JSONDecoder().decode(GeneratedDatePlan.self, from: data)
+        case let .decodingFailed(underlyingError):
+            return "The generated plan could not be decoded: \(underlyingError.localizedDescription)"
+        }
     }
 }
