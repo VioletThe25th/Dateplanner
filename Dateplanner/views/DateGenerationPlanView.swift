@@ -10,15 +10,15 @@ import SwiftUI
 struct DateGenerationPlanView: View {
     let plan: GeneratedDatePlan
     @Environment(\.dismiss) private var dismiss
-    
+
     private var orderedStops: [GeneratedDateStop] {
         plan.stops.sorted { $0.order < $1.order }
     }
-    
+
     private var totalEstimatedPrice: Int {
         orderedStops.compactMap { $0.estimatedPrice }.reduce(0, +)
     }
-    
+
     private var estimatedDurationMinutes: Int {
         let stopsMinutes = orderedStops.reduce(0) { partialResult, stop in
             partialResult + estimatedMinutes(for: stop.category)
@@ -26,12 +26,12 @@ struct DateGenerationPlanView: View {
         let transferMinutes = max(orderedStops.count - 1, 0) * 12
         return stopsMinutes + transferMinutes
     }
-    
+
     private var estimatedDurationText: String {
         let totalMinutes = estimatedDurationMinutes
         let hours = totalMinutes / 60
         let minutes = totalMinutes % 60
-        
+
         if hours > 0 && minutes > 0 {
             return "\(hours) h \(minutes) min"
         } else if hours > 0 {
@@ -40,146 +40,118 @@ struct DateGenerationPlanView: View {
             return "\(minutes) min"
         }
     }
-    
-    private var metadataSummary: String {
-        let priceText = totalEstimatedPrice > 0 ? "¥\(totalEstimatedPrice)" : "Flexible budget"
-        return "\(priceText) · \(orderedStops.count) stops · \(estimatedDurationText)"
+
+    private var totalBudgetText: String {
+        totalEstimatedPrice > 0 ? "¥\(totalEstimatedPrice)" : "Flexible"
     }
-    
+
+    private var bodyContent: some View {
+        GeometryReader { proxy in
+            let horizontalPadding = proxy.size.width >= 768 ? 32.0 : 20.0
+
+            ZStack {
+                BackgroundView()
+
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 18) {
+                        heroSection
+                        statsSection
+                        itinerarySection
+                    }
+                    .frame(maxWidth: 620)
+                    .padding(.horizontal, horizontalPadding)
+                    .padding(.top, 18)
+                    .padding(.bottom, 40)
+                    .frame(maxWidth: .infinity, alignment: .top)
+                }
+            }
+        }
+    }
+
     var body: some View {
         NavigationStack {
-            ZStack {
-                BackgroundView2()
-                    .ignoresSafeArea()
-                
-                
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 22) {
-                        headerSection
-                        stopsSection
+            bodyContent
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Text("Done")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.black.opacity(0.92))
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 10)
+                                .background(
+                                    Capsule(style: .continuous)
+                                        .fill(Color.white)
+                                )
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 10)
-                    .padding(.bottom, 32)
                 }
-            }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                    .foregroundStyle(.white.opacity(0.92))
-                }
-            }
+                .toolbarTitleDisplayMode(.inline)
         }
         .preferredColorScheme(.dark)
     }
-    
-    private var headerSection: some View {
-        VStack(spacing: 10) {
-            Spacer(minLength: 8)
-            
-            Text(plan.title)
-                .font(.system(size: 34, weight: .bold, design: .rounded))
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.white)
-                .shadow(color: .black.opacity(0.35), radius: 10, x: 0, y: 4)
-            
-            Text(metadataSummary)
-                .font(.subheadline.weight(.medium))
-                .multilineTextAlignment(.center)
+
+    private var heroSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Your Date Plan")
+                .font(.footnote.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.80))
-                .padding(.horizontal, 8)
-            
-            if !plan.summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-               plan.summary != metadataSummary {
-                Text(plan.summary)
-                    .font(.footnote)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.white.opacity(0.66))
-                    .padding(.horizontal, 14)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(.ultraThinMaterial, in: Capsule(style: .continuous))
+                .overlay(
+                    Capsule(style: .continuous)
+                        .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                )
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(plan.title)
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(plan.summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "A smooth, personalized route designed around your vibe and nearby places." : plan.summary)
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.62))
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 16)
-        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
-    
-    private var stopsSection: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(orderedStops.enumerated()), id: \.offset) { index, stop in
-                VStack(spacing: 0) {
-                    stopCard(for: stop, index: index)
-                    
-                    if index < orderedStops.count - 1 {
-                        timelineConnector
-                    }
-                }
-            }
+
+    private var statsSection: some View {
+        HStack(spacing: 12) {
+            statCard(title: "Budget", value: totalBudgetText, icon: "banknote.fill")
+            statCard(title: "Stops", value: "\(orderedStops.count)", icon: "mappin.circle.fill")
+            statCard(title: "Duration", value: estimatedDurationText, icon: "clock.fill")
         }
     }
-    
-    private func stopCard(for stop: GeneratedDateStop, index: Int) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 14) {
-                stopImage(for: stop)
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(stop.name)
-                                .font(.headline.weight(.semibold))
-                                .foregroundStyle(.white)
-                                .lineLimit(2)
-                            
-                            if let address = stop.address {
-                                Label(address, systemImage: "mappin.and.ellipse")
-                                    .font(.caption)
-                                    .foregroundStyle(.white.opacity(0.62))
-                                    .lineLimit(1)
-                            }
-                        }
-                        
-                        Spacer(minLength: 8)
-                        
-                        Text("#\(index + 1)")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(.white.opacity(0.88))
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 5)
-                            .background(
-                                Capsule(style: .continuous)
-                                    .fill(Color.white.opacity(0.10))
-                            )
-                    }
-                    
-                    Text(stop.description)
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.82))
-                        .lineLimit(3)
-                    
-                    HStack(spacing: 10) {
-                        if let estimatedPrice = stop.estimatedPrice {
-                            infoPill(icon: "yensign.circle.fill", text: "\(estimatedPrice)")
-                        }
-                        
-                        if let category = stop.category {
-                            infoPill(icon: iconName(for: category), text: displayName(for: category))
-                        }
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.white.opacity(0.55))
-                    }
-                }
-            }
-            
-            Text(stop.reason)
-                .font(.footnote)
-                .foregroundStyle(.white.opacity(0.62))
+
+    private func statCard(title: String, value: String, icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Image(systemName: icon)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.86))
+                .frame(width: 34, height: 34)
+                .background(
+                    Circle()
+                        .fill(Color.white.opacity(0.10))
+                )
+
+            Text(title)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.white.opacity(0.54))
+
+            Text(value)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
@@ -189,15 +161,122 @@ struct DateGenerationPlanView: View {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
+    }
+
+    private var itinerarySection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Itinerary")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.white)
+
+                Text("A step-by-step flow for the full date.")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.56))
+            }
+
+            VStack(spacing: 0) {
+                ForEach(Array(orderedStops.enumerated()), id: \.offset) { index, stop in
+                    VStack(spacing: 0) {
+                        stopCard(for: stop, index: index)
+
+                        if index < orderedStops.count - 1 {
+                            timelineConnector
+                        }
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func stopCard(for stop: GeneratedDateStop, index: Int) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            stopImage(for: stop, index: index)
+
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(stop.name)
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        if let address = stop.address, !address.isEmpty {
+                            Label(address, systemImage: "mappin.and.ellipse")
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.60))
+                                .lineLimit(1)
+                        }
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Text("Stop \(index + 1)")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.86))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(Color.white.opacity(0.10))
+                        )
+                }
+
+                Text(stop.description)
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.80))
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 8) {
+                    if let estimatedPrice = stop.estimatedPrice {
+                        infoPill(icon: "yensign.circle.fill", text: "\(estimatedPrice)")
+                    }
+
+                    if let category = stop.category {
+                        infoPill(icon: iconName(for: category), text: displayName(for: category))
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Why this stop")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.52))
+
+                    Text(stop.reason)
+                        .font(.footnote)
+                        .foregroundStyle(.white.opacity(0.66))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Color.white.opacity(0.06))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                )
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(Color.white.opacity(0.10))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
         .shadow(color: .black.opacity(0.18), radius: 16, x: 0, y: 10)
     }
-    
+
     private var timelineConnector: some View {
-        VStack(spacing: 0) {
+        HStack(spacing: 12) {
             Capsule(style: .continuous)
                 .fill(
                     LinearGradient(
-                        colors: [Color.cyan.opacity(0.75), Color.blue.opacity(0.38)],
+                        colors: [Color.cyan.opacity(0.80), Color.blue.opacity(0.36)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -207,18 +286,23 @@ struct DateGenerationPlanView: View {
                     Circle()
                         .fill(Color.cyan.opacity(0.95))
                         .frame(width: 8, height: 8)
-                        .blur(radius: 0.4)
+                        .blur(radius: 0.3)
                         .offset(y: 17)
                 )
+
+            Text("Next stop")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.white.opacity(0.42))
+
+            Spacer()
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
+        .padding(.vertical, 10)
+        .padding(.leading, 18)
     }
-    
-    private func stopImage(for stop: GeneratedDateStop) -> some View {
-        ZStack(alignment: .bottomLeading) {
-            if let imageURL = stop.imageURL,
-               let url = URL(string: imageURL) {
+
+    private func stopImage(for stop: GeneratedDateStop, index: Int) -> some View {
+        ZStack(alignment: .topLeading) {
+            if let imageURL = stop.imageURL, let url = URL(string: imageURL) {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .empty:
@@ -236,52 +320,63 @@ struct DateGenerationPlanView: View {
             } else {
                 placeholderImage(for: stop)
             }
-            
-            if let estimatedPrice = stop.estimatedPrice {
-                HStack(spacing: 4) {
-                    Image(systemName: "yensign.circle.fill")
-                    Text("\(estimatedPrice)")
+
+            HStack(spacing: 8) {
+                Text("\(index + 1)")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.black.opacity(0.92))
+                    .frame(width: 28, height: 28)
+                    .background(
+                        Circle()
+                            .fill(Color.white)
+                    )
+
+                if let estimatedPrice = stop.estimatedPrice {
+                    HStack(spacing: 4) {
+                        Image(systemName: "yensign.circle.fill")
+                        Text("\(estimatedPrice)")
+                    }
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.92))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(.ultraThinMaterial, in: Capsule(style: .continuous))
                 }
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.92))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 6)
-                .background(.ultraThinMaterial, in: Capsule(style: .continuous))
-                .padding(8)
             }
+            .padding(12)
         }
-        .frame(width: 102, height: 118)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .frame(height: 194)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
     }
-    
+
     @ViewBuilder
     private func placeholderImage(for stop: GeneratedDateStop) -> some View {
         let category = stop.category?.lowercased() ?? ""
         let icon = iconName(for: category)
         let gradient = gradientColors(for: category)
-        
+
         ZStack {
             LinearGradient(
                 colors: gradient,
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            
+
             Circle()
                 .fill(Color.white.opacity(0.10))
-                .frame(width: 54, height: 54)
+                .frame(width: 64, height: 64)
                 .blur(radius: 0.4)
-            
+
             Image(systemName: icon)
-                .font(.title2.weight(.semibold))
+                .font(.title.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.92))
         }
     }
-    
+
     private func infoPill(icon: String, text: String) -> some View {
         HStack(spacing: 5) {
             Image(systemName: icon)
@@ -290,17 +385,17 @@ struct DateGenerationPlanView: View {
         }
         .font(.caption.weight(.medium))
         .foregroundStyle(.white.opacity(0.72))
-        .padding(.horizontal, 9)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
         .background(
             Capsule(style: .continuous)
                 .fill(Color.white.opacity(0.08))
         )
     }
-    
+
     private func estimatedMinutes(for category: String?) -> Int {
         let value = category?.lowercased() ?? ""
-        
+
         if value.contains("aquarium") || value.contains("zoo") || value.contains("museum") || value.contains("amusement park") {
             return 80
         } else if value.contains("cinema") {
@@ -319,7 +414,7 @@ struct DateGenerationPlanView: View {
             return 60
         }
     }
-    
+
     private func displayName(for category: String) -> String {
         category
             .split(separator: " ")
@@ -328,10 +423,10 @@ struct DateGenerationPlanView: View {
             }
             .joined(separator: " ")
     }
-    
+
     private func iconName(for category: String) -> String {
         let value = category.lowercased()
-        
+
         if value.contains("aquarium") {
             return "fish.fill"
         } else if value.contains("romantic restaurant") || value.contains("restaurant") || value.contains("izakaya") || value.contains("ramen") || value.contains("sushi") {
@@ -364,10 +459,10 @@ struct DateGenerationPlanView: View {
             return "mappin.circle.fill"
         }
     }
-    
+
     private func gradientColors(for category: String) -> [Color] {
         let value = category.lowercased()
-        
+
         if value.contains("aquarium") {
             return [Color.cyan.opacity(0.95), Color.blue.opacity(0.75)]
         } else if value.contains("romantic restaurant") || value.contains("restaurant") || value.contains("izakaya") || value.contains("sushi") || value.contains("ramen") {

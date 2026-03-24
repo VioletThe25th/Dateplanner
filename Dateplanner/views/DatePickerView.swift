@@ -257,6 +257,7 @@ struct DatePickerView: View {
     @State private var showGeneratedPlan = false
     @State private var isGeneratingPlan = false
     @State private var generationErrorMessage: String? = nil
+    @FocusState private var isIdeasFieldFocused: Bool
 
     private let mapSearchService = MapSearchService()
     private let dateService = DateGenerationService()
@@ -459,6 +460,7 @@ struct DatePickerView: View {
                     .scrollContentBackground(.hidden)
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.92))
+                    .focused($isIdeasFieldFocused)
                     .frame(minHeight: 104)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
@@ -550,6 +552,11 @@ struct DatePickerView: View {
                     .padding(.bottom, 146)
                     .frame(maxWidth: .infinity, alignment: .top)
                 }
+                .scrollDismissesKeyboard(.interactively)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                isIdeasFieldFocused = false
             }
             .safeAreaInset(edge: .bottom) {
                 bottomCTA
@@ -617,6 +624,14 @@ struct DatePickerView: View {
                                     .stroke(Color.white.opacity(0.08), lineWidth: 1)
                             )
                     }
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+
+                    Button("Done") {
+                        isIdeasFieldFocused = false
+                    }
+                    .font(.subheadline.weight(.semibold))
                 }
             }
             .toolbarTitleDisplayMode(.inline)
@@ -759,10 +774,10 @@ struct DatePickerView: View {
                 await MainActor.run {
                     generationErrorMessage = error.localizedDescription
                     isGeneratingPlan = false
+                        }
+                    }
                 }
             }
-        }
-    }
 
     private func updateMapPreviewCamera() {
         guard let lat = selectedLatitude, let lon = selectedLongitude else {

@@ -67,13 +67,13 @@ final class MapSearchService {
     private func buildSearchQueries(for mood: DateMood) -> [String] {
         switch mood {
         case .chill:
-            return ["bar", "pub", "ice cream parlor", "ice cream shop", "ice cream stand", "cafe", "park", "bookstore", "cinema"]
+            return ["bar", "pub", "ice cream parlor", "ice cream shop", "ice cream stand", "cafe", "park", "bookstore", "cinema", "coffee shop"]
         case .romantic:
             return ["romantic restaurant", "wine bar", "cafe", "aquarium", "cinema"]
         case .fun:
-            return ["arcade", "karaoke", "bowling"]
+            return ["arcade", "karaoke", "bowling", "casino", "casino room"]
         case .adventure:
-            return ["amusement park", "zoo", "aquarium", "casino", "casino room", "hiking", "museum", "activity", "aquarium"]
+            return ["amusement park", "park", "zoo", "aquarium", "casino", "casino room", "hiking", "museum", "activity", "aquarium"]
         }
     }
     
