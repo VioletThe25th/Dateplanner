@@ -8,6 +8,8 @@
 import SwiftUI
 import MapKit
 
+let unselectedLocationToken = "__unselected_location__"
+
 enum DateMood: String, CaseIterable, Identifiable {
     case chill = "Chill"
     case romantic = "Romantic"
@@ -131,13 +133,13 @@ private struct CurrencyPressPicker: View {
 }
 
 private struct MoodChip: View {
-    let mood: DateMood
+    let title: String
     let isSelected: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Text(mood.rawValue)
+            Text(title)
                 .font(.headline.weight(.semibold))
                 .padding(.horizontal, 16)
                 .padding(.vertical, 11)
@@ -185,6 +187,7 @@ private struct PickerSectionHeader: View {
 }
 
 private struct MapPreview: View {
+    @EnvironmentObject private var localization: LocalizationManager
     let isPreview: Bool
     let selectedLocation: String
     let selectedLatitude: Double?
@@ -195,7 +198,7 @@ private struct MapPreview: View {
     var body: some View {
         ZStack {
             if isPreview {
-                placeholder(title: "Map disabled in Preview")
+                placeholder(title: localization.text("datePicker.map.disabledPreview"))
             } else if let lat = selectedLatitude, let lon = selectedLongitude {
                 let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
 
@@ -210,7 +213,7 @@ private struct MapPreview: View {
                 .environment(\.colorScheme, .dark)
                 .allowsHitTesting(false)
             } else {
-                placeholder(title: "Map preview will appear here")
+                placeholder(title: localization.text("datePicker.map.previewPlaceholder"))
             }
         }
         .frame(height: 146)
@@ -240,10 +243,11 @@ private struct MapPreview: View {
 }
 
 struct DatePickerView: View {
+    @EnvironmentObject private var localization: LocalizationManager
     @State private var budget: Double = 5000
     @State private var selectedBudget: Int = 5000
     @State private var selectedCurrency: CurrencyOption = .yen
-    @State private var selectedLocation: String = "Choose an area"
+    @State private var selectedLocation: String = unselectedLocationToken
     @State private var selectedLocationRadius: CLLocationDistance = 1500
     @State private var selectedLatitude: Double? = nil
     @State private var selectedLongitude: Double? = nil
@@ -279,31 +283,52 @@ struct DatePickerView: View {
     }
 
     private var isReadyToGenerate: Bool {
-        selectedLatitude != nil && selectedLongitude != nil && selectedMood != nil
+        selectedLatitude != nil && selectedLongitude != nil && selectedMood != nil && !isLocationUnselected
     }
 
     private var locationSummaryText: String {
-        selectedLocation == "Choose an area" ? "Area not selected" : "\(selectedLocation) · \(Int(selectedLocationRadius))m"
+        isLocationUnselected
+        ? localization.text("datePicker.location.areaNotSelected")
+        : "\(selectedLocation) · \(Int(selectedLocationRadius))m"
     }
 
     private var readinessText: String {
         if isReadyToGenerate {
-            return "Everything looks ready. Generate your personalized date plan."
+            return localization.text("datePicker.readiness.ready")
         }
 
         var missing: [String] = []
         if selectedLatitude == nil || selectedLongitude == nil {
-            missing.append("location")
+            missing.append(localization.text("datePicker.readiness.location"))
         }
         if selectedMood == nil {
-            missing.append("mood")
+            missing.append(localization.text("datePicker.readiness.mood"))
         }
 
         if missing.isEmpty {
-            return "Adjust your preferences before generating."
+            return localization.text("datePicker.readiness.adjust")
         } else {
-            return "Choose your \(missing.joined(separator: " and ")) to continue."
+            return localization.text("datePicker.readiness.chooseFormat", localizedMissingList(missing))
         }
+    }
+
+    private var isLocationUnselected: Bool {
+        selectedLocation == unselectedLocationToken
+    }
+
+    private func localizedMissingList(_ values: [String]) -> String {
+        if values.count <= 1 {
+            return values.first ?? ""
+        }
+
+        let separator = localization.language == .french ? " et "
+            : localization.language == .spanish ? " y "
+            : localization.language == .japanese ? "と"
+            : localization.language == .chinese ? "和"
+            : localization.language == .korean ? " 및 "
+            : " and "
+
+        return values.joined(separator: separator)
     }
 
     private var budgetSection: some View {
@@ -311,8 +336,8 @@ struct DatePickerView: View {
             HStack(alignment: .top) {
                 PickerSectionHeader(
                     icon: "dollarsign.circle.fill",
-                    title: "Budget",
-                    subtitle: "Set the budget range for the whole date."
+                    title: localization.text("datePicker.section.budget.title"),
+                    subtitle: localization.text("datePicker.section.budget.subtitle")
                 )
 
                 Spacer(minLength: 16)
@@ -347,8 +372,8 @@ struct DatePickerView: View {
         VStack(alignment: .leading, spacing: 16) {
             PickerSectionHeader(
                 icon: "mappin.circle.fill",
-                title: "Location",
-                subtitle: "Pick the area where the date should happen."
+                title: localization.text("datePicker.section.location.title"),
+                subtitle: localization.text("datePicker.section.location.subtitle")
             )
 
             NavigationLink {
@@ -361,12 +386,12 @@ struct DatePickerView: View {
             } label: {
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(selectedLocation == "Choose an area" ? "Choose an area" : selectedLocation)
+                        Text(isLocationUnselected ? localization.text("datePicker.location.unselected") : selectedLocation)
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(.white)
                             .lineLimit(1)
 
-                        Text(selectedLocation == "Choose an area" ? "Open the map to select a place and radius." : "Search radius: \(Int(selectedLocationRadius))m")
+                        Text(isLocationUnselected ? localization.text("datePicker.location.openMap") : localization.text("datePicker.location.radiusFormat", Int(selectedLocationRadius)))
                             .font(.subheadline)
                             .foregroundStyle(.white.opacity(0.56))
                             .lineLimit(1)
@@ -411,14 +436,14 @@ struct DatePickerView: View {
         VStack(alignment: .leading, spacing: 16) {
             PickerSectionHeader(
                 icon: "heart.circle.fill",
-                title: "Mood",
-                subtitle: "Choose the overall energy you want for the date."
+                title: localization.text("datePicker.section.mood.title"),
+                subtitle: localization.text("datePicker.section.mood.subtitle")
             )
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(DateMood.allCases) { mood in
-                        MoodChip(mood: mood, isSelected: selectedMood == mood) {
+                        MoodChip(title: localization.moodName(mood), isSelected: selectedMood == mood) {
                             if selectedMood == mood {
                                 selectedMood = nil
                             } else {
@@ -437,8 +462,8 @@ struct DatePickerView: View {
         VStack(alignment: .leading, spacing: 16) {
             PickerSectionHeader(
                 icon: "lightbulb.max.fill",
-                title: "Ideas",
-                subtitle: "Add optional hints like cinema, aquarium, ramen, or rooftop."
+                title: localization.text("datePicker.section.ideas.title"),
+                subtitle: localization.text("datePicker.section.ideas.subtitle")
             )
 
             ZStack(alignment: .topLeading) {
@@ -449,7 +474,7 @@ struct DatePickerView: View {
                     .stroke(Color.white.opacity(0.08), lineWidth: 1)
 
                 if userIdeas.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text("Tell us your ideas...")
+                    Text(localization.text("datePicker.ideas.placeholder"))
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.38))
                         .padding(.horizontal, 14)
@@ -469,14 +494,14 @@ struct DatePickerView: View {
             .frame(minHeight: 104)
 
             HStack {
-                Label("\(userIdeas.count) characters", systemImage: "character.cursor.ibeam")
+                Label(localization.text("datePicker.ideas.charactersFormat", userIdeas.count), systemImage: "character.cursor.ibeam")
                     .font(.footnote)
                     .foregroundStyle(.white.opacity(0.46))
 
                 Spacer()
 
                 if !userIdeas.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text("Optional")
+                    Text(localization.text("common.optional"))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.white.opacity(0.50))
                         .padding(.horizontal, 10)
@@ -497,7 +522,7 @@ struct DatePickerView: View {
                 startDateGeneration()
             } label: {
                 HStack(spacing: 12) {
-                    Text("Generate plan")
+                    Text(localization.text("datePicker.cta.generate"))
                         .font(.headline.weight(.semibold))
 
                     Image(systemName: "arrow.right")
@@ -605,10 +630,10 @@ struct DatePickerView: View {
             }) {
                 generatedPlanDestination
             }
-            .alert("Generation Error", isPresented: generationErrorBinding) {
-                Button("OK", role: .cancel) { }
+            .alert(localization.text("datePicker.error.title"), isPresented: generationErrorBinding) {
+                Button(localization.text("common.ok"), role: .cancel) { }
             } message: {
-                Text(generationErrorMessage ?? "Unknown error")
+                Text(generationErrorMessage ?? localization.text("common.unknownError"))
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -618,21 +643,13 @@ struct DatePickerView: View {
                         Image(systemName: "gearshape")
                             .font(.title3.weight(.semibold))
                             .foregroundStyle(.white.opacity(0.88))
-                            .frame(width: 38, height: 38)
-                            .background(
-                                Circle()
-                                    .fill(Color.white.opacity(0.08))
-                            )
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                            )
                     }
+                    .buttonStyle(.plain)
                 }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
 
-                    Button("Done") {
+                    Button(localization.text("common.done")) {
                         isIdeasFieldFocused = false
                     }
                     .font(.subheadline.weight(.semibold))
@@ -645,7 +662,7 @@ struct DatePickerView: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Date Setup")
+            Text(localization.text("datePicker.title"))
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.80))
                 .padding(.horizontal, 12)
@@ -657,11 +674,11 @@ struct DatePickerView: View {
                 )
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("Create your date")
+                Text(localization.text("datePicker.heading"))
                     .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
 
-                Text("Set the mood, budget, and area. We’ll turn that into a smooth date plan with nearby places and a natural flow.")
+                Text(localization.text("datePicker.subtitle"))
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.62))
                     .fixedSize(horizontal: false, vertical: true)
@@ -670,8 +687,8 @@ struct DatePickerView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     summaryPill(icon: "banknote.fill", text: "\(selectedCurrency.rawValue)\(selectedBudget)")
-                    summaryPill(icon: "mappin.and.ellipse", text: selectedLocation == "Choose an area" ? "No area yet" : selectedLocation)
-                    summaryPill(icon: "heart.text.square.fill", text: selectedMood?.rawValue ?? "No mood yet")
+                    summaryPill(icon: "mappin.and.ellipse", text: isLocationUnselected ? localization.text("datePicker.header.noAreaYet") : selectedLocation)
+                    summaryPill(icon: "heart.text.square.fill", text: selectedMood.map(localization.moodName) ?? localization.text("datePicker.header.noMoodYet"))
                 }
                 .padding(.vertical, 2)
             }
@@ -813,7 +830,8 @@ struct DatePickerView: View {
         guard
             let latitude = selectedLatitude,
             let longitude = selectedLongitude,
-            let mood = selectedMood
+            let mood = selectedMood,
+            !isLocationUnselected
         else {
             return nil
         }
@@ -834,5 +852,6 @@ struct DatePickerView: View {
 #Preview {
     NavigationStack {
         DatePickerView(debugMock: true)
+            .environmentObject(LocalizationManager.preview)
     }
 }

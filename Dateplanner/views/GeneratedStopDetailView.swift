@@ -11,6 +11,7 @@ import MapKit
 struct GeneratedStopDetailView: View {
     let stop: GeneratedDateStop
 
+    @EnvironmentObject private var localization: LocalizationManager
     @Environment(\.openURL) private var openURL
     @State private var mapPosition: MapCameraPosition
 
@@ -42,7 +43,7 @@ struct GeneratedStopDetailView: View {
         if let estimatedPrice = stop.estimatedPrice {
             return "¥\(estimatedPrice)"
         } else {
-            return "Flexible"
+            return localization.text("common.flexible")
         }
     }
 
@@ -50,7 +51,7 @@ struct GeneratedStopDetailView: View {
         if let address = stop.address, !address.isEmpty {
             return address
         } else {
-            return "Address unavailable"
+            return localization.text("detail.addressUnavailable")
         }
     }
 
@@ -124,13 +125,13 @@ struct GeneratedStopDetailView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     HStack(alignment: .top) {
                         HStack(spacing: 8) {
-                            heroTag(icon: "sparkles", text: categoryText ?? "Selected stop")
+                            heroTag(icon: "sparkles", text: categoryText ?? localization.text("detail.selectedStop"))
                             heroTag(icon: "yensign.circle.fill", text: priceText)
                         }
 
                         Spacer(minLength: 12)
 
-                        Text("Stop \(max(stop.order, 1))")
+                        Text(localization.text("plan.stopFormat", max(stop.order, 1)))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.black.opacity(0.92))
                             .padding(.horizontal, 11)
@@ -221,7 +222,7 @@ struct GeneratedStopDetailView: View {
 
     private var editorialCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Stop Spotlight")
+            Text(localization.text("detail.stopSpotlight"))
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.76))
                 .padding(.horizontal, 12)
@@ -233,7 +234,7 @@ struct GeneratedStopDetailView: View {
                 )
 
             VStack(alignment: .leading, spacing: 10) {
-                Text("A place chosen to keep the date feeling natural, balanced, and memorable.")
+                Text(localization.text("detail.stopSpotlightSubtitle"))
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
@@ -259,17 +260,17 @@ struct GeneratedStopDetailView: View {
 
     private var quickFactsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionTitle("Quick Facts")
+            sectionTitle(localization.text("detail.quickFacts"))
 
             VStack(spacing: 12) {
                 HStack(spacing: 12) {
                     factCard(
-                        title: "Category",
-                        value: categoryText ?? "Custom",
+                        title: localization.text("detail.category"),
+                        value: categoryText ?? localization.text("common.custom"),
                         icon: iconName(for: stop.category?.lowercased() ?? "")
                     )
                     factCard(
-                        title: "Estimated",
+                        title: localization.text("detail.estimated"),
                         value: priceText,
                         icon: "banknote.fill"
                     )
@@ -277,7 +278,7 @@ struct GeneratedStopDetailView: View {
 
                 if hasValidCoordinate {
                     factWideCard(
-                        title: "Coordinates",
+                        title: localization.text("detail.coordinates"),
                         value: "\(String(format: "%.5f", stop.latitude)), \(String(format: "%.5f", stop.longitude))",
                         icon: "location.circle.fill"
                     )
@@ -357,7 +358,7 @@ struct GeneratedStopDetailView: View {
 
     private var reasonSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionTitle("Why It Works")
+            sectionTitle(localization.text("detail.whyItWorks"))
 
             VStack(alignment: .leading, spacing: 12) {
                 Image(systemName: "quote.opening")
@@ -386,7 +387,7 @@ struct GeneratedStopDetailView: View {
 
     private var locationSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionTitle("Location Preview")
+            sectionTitle(localization.text("detail.locationPreview"))
 
             if hasValidCoordinate {
                 ZStack(alignment: .bottomLeading) {
@@ -400,7 +401,7 @@ struct GeneratedStopDetailView: View {
 
                     HStack(spacing: 8) {
                         Image(systemName: "map.fill")
-                        Text("Tap to open in Maps")
+                        Text(localization.text("detail.tapToOpenMaps"))
                             .lineLimit(1)
                     }
                     .font(.caption.weight(.semibold))
@@ -426,13 +427,13 @@ struct GeneratedStopDetailView: View {
                 )
 
                 HStack(spacing: 6) {
-                    Text("Prefer Google Maps?")
+                    Text(localization.text("detail.preferGoogleMaps"))
                         .foregroundStyle(.white.opacity(0.50))
 
                     Button {
                         openInGoogleMaps()
                     } label: {
-                        Text("Open there")
+                        Text(localization.text("detail.openThere"))
                             .foregroundStyle(.white.opacity(0.82))
                     }
                     .buttonStyle(.plain)
@@ -449,7 +450,7 @@ struct GeneratedStopDetailView: View {
                                 .font(.title2)
                                 .foregroundStyle(.white.opacity(0.72))
 
-                            Text("Location preview unavailable")
+                            Text(localization.text("detail.locationPreviewUnavailable"))
                                 .font(.subheadline)
                                 .foregroundStyle(.white.opacity(0.56))
                         }
@@ -618,5 +619,6 @@ struct GeneratedStopDetailView: View {
                 estimatedPrice: 400
             )
         )
+        .environmentObject(LocalizationManager.preview)
     }
 }

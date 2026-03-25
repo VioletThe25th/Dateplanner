@@ -9,16 +9,19 @@
 import SwiftUI
 
 struct DateGenerationLoadingView: View {
+    @EnvironmentObject private var localization: LocalizationManager
     @State private var isOrbiting = false
     @State private var isPulsing = false
     @State private var isShimmering = false
     @State private var animateCards = false
 
-    private let loadingSteps: [(title: String, subtitle: String, icon: String)] = [
-        ("Finding nearby spots", "Scanning the best places around your selected area.", "mappin.and.ellipse"),
-        ("Matching the vibe", "Balancing budget, mood, and your own ideas.", "heart.circle"),
-        ("Building the route", "Arranging a smooth flow for the full date plan.", "sparkles")
-    ]
+    private var loadingSteps: [(title: String, subtitle: String, icon: String)] {
+        [
+            (localization.text("loading.step.finding.title"), localization.text("loading.step.finding.subtitle"), "mappin.and.ellipse"),
+            (localization.text("loading.step.matching.title"), localization.text("loading.step.matching.subtitle"), "heart.circle"),
+            (localization.text("loading.step.building.title"), localization.text("loading.step.building.subtitle"), "sparkles")
+        ]
+    }
 
     var body: some View {
         ZStack {
@@ -45,7 +48,7 @@ struct DateGenerationLoadingView: View {
 
     private var headerSection: some View {
         VStack(spacing: 12) {
-            Text("AI Date Planner")
+            Text(localization.text("content.appTitle"))
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.78))
                 .padding(.horizontal, 12)
@@ -56,12 +59,12 @@ struct DateGenerationLoadingView: View {
                         .stroke(Color.white.opacity(0.10), lineWidth: 1)
                 )
 
-            Text("Designing your date")
+            Text(localization.text("loading.title"))
                 .font(.system(size: 34, weight: .bold, design: .rounded))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.white)
 
-            Text("We are picking places, shaping the mood, and building a plan that feels natural.")
+            Text(localization.text("loading.subtitle"))
                 .font(.subheadline)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.white.opacity(0.66))
@@ -140,9 +143,9 @@ struct DateGenerationLoadingView: View {
                 }
 
                 HStack(spacing: 10) {
-                    detailPill(icon: "mappin.circle.fill", text: "Nearby")
-                    detailPill(icon: "sparkles", text: "AI")
-                    detailPill(icon: "point.topleft.down.curvedto.point.bottomright.up.fill", text: "Flow")
+                    detailPill(icon: "mappin.circle.fill", text: localization.text("loading.detail.nearby"))
+                    detailPill(icon: "sparkles", text: localization.text("loading.detail.ai"))
+                    detailPill(icon: "point.topleft.down.curvedto.point.bottomright.up.fill", text: localization.text("loading.detail.flow"))
                 }
             }
             .padding(22)
@@ -182,7 +185,7 @@ struct DateGenerationLoadingView: View {
             .frame(height: 8)
             .clipShape(Capsule(style: .continuous))
 
-            Text("Generating a personalized plan...")
+            Text(localization.text("loading.progress"))
                 .font(.footnote)
                 .foregroundStyle(.white.opacity(0.58))
         }

@@ -9,6 +9,7 @@ import SwiftUI
 
 struct DateGenerationPlanView: View {
     let plan: GeneratedDatePlan
+    @EnvironmentObject private var localization: LocalizationManager
     @Environment(\.dismiss) private var dismiss
 
     private var orderedStops: [GeneratedDateStop] {
@@ -33,16 +34,16 @@ struct DateGenerationPlanView: View {
         let minutes = totalMinutes % 60
 
         if hours > 0 && minutes > 0 {
-            return "\(hours) h \(minutes) min"
+            return localization.text("plan.duration.hoursMinutes", hours, minutes)
         } else if hours > 0 {
-            return "\(hours) h"
+            return localization.text("plan.duration.hoursOnly", hours)
         } else {
-            return "\(minutes) min"
+            return localization.text("plan.duration.minutesOnly", minutes)
         }
     }
 
     private var totalBudgetText: String {
-        totalEstimatedPrice > 0 ? "¥\(totalEstimatedPrice)" : "Flexible"
+        totalEstimatedPrice > 0 ? "¥\(totalEstimatedPrice)" : localization.text("common.flexible")
     }
 
     private var bodyContent: some View {
@@ -76,15 +77,9 @@ struct DateGenerationPlanView: View {
                         Button {
                             dismiss()
                         } label: {
-                            Text("Done")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.black.opacity(0.92))
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 10)
-                                .background(
-                                    Capsule(style: .continuous)
-                                        .fill(Color.white)
-                                )
+                            Image(systemName: "xmark")
+                                .font(.headline.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.88))
                         }
                         .buttonStyle(.plain)
                     }
@@ -96,7 +91,7 @@ struct DateGenerationPlanView: View {
 
     private var heroSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Your Date Plan")
+            Text(localization.text("plan.title"))
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.80))
                 .padding(.horizontal, 12)
@@ -113,7 +108,7 @@ struct DateGenerationPlanView: View {
                     .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text(plan.summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "A smooth, personalized route designed around your vibe and nearby places." : plan.summary)
+                Text(plan.summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? localization.text("plan.defaultSummary") : plan.summary)
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.62))
                     .fixedSize(horizontal: false, vertical: true)
@@ -124,9 +119,9 @@ struct DateGenerationPlanView: View {
 
     private var statsSection: some View {
         HStack(spacing: 12) {
-            statCard(title: "Budget", value: totalBudgetText, icon: "banknote.fill")
-            statCard(title: "Stops", value: "\(orderedStops.count)", icon: "mappin.circle.fill")
-            statCard(title: "Duration", value: estimatedDurationText, icon: "clock.fill")
+            statCard(title: localization.text("plan.stats.budget"), value: totalBudgetText, icon: "banknote.fill")
+            statCard(title: localization.text("plan.stats.stops"), value: "\(orderedStops.count)", icon: "mappin.circle.fill")
+            statCard(title: localization.text("plan.stats.duration"), value: estimatedDurationText, icon: "clock.fill")
         }
     }
 
@@ -166,11 +161,11 @@ struct DateGenerationPlanView: View {
     private var itinerarySection: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Itinerary")
+                Text(localization.text("plan.itinerary.title"))
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.white)
 
-                Text("A step-by-step flow for the full date.")
+                Text(localization.text("plan.itinerary.subtitle"))
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.56))
             }
@@ -217,7 +212,7 @@ struct DateGenerationPlanView: View {
 
                     Spacer(minLength: 8)
 
-                    Text("Stop \(index + 1)")
+                    Text(localization.text("plan.stopFormat", index + 1))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.white.opacity(0.86))
                         .padding(.horizontal, 10)
@@ -244,7 +239,7 @@ struct DateGenerationPlanView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Why this stop")
+                    Text(localization.text("plan.whyThisStop"))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.white.opacity(0.52))
 
@@ -264,7 +259,7 @@ struct DateGenerationPlanView: View {
                 )
 
                 HStack(spacing: 8) {
-                    Text("View details")
+                    Text(localization.text("plan.viewDetails"))
                         .font(.caption.weight(.semibold))
                     Image(systemName: "arrow.right")
                         .font(.caption.weight(.bold))
@@ -303,7 +298,7 @@ struct DateGenerationPlanView: View {
                         .offset(y: 17)
                 )
 
-            Text("Next stop")
+            Text(localization.text("plan.nextStop"))
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.white.opacity(0.42))
 
@@ -580,4 +575,5 @@ private struct StopCardPressStyle: ButtonStyle {
             ]
         )
     )
+    .environmentObject(LocalizationManager.preview)
 }

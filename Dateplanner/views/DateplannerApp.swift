@@ -9,9 +9,12 @@ import SwiftUI
 
 @main
 struct DateplannerApp: App {
+    @StateObject private var localization = LocalizationManager()
+
     var body: some Scene {
         WindowGroup {
             RootView()
+                .environmentObject(localization)
         }
     }
 }

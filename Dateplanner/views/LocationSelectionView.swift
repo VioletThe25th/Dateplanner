@@ -183,6 +183,7 @@ final class LocationSelectionViewModel: NSObject, ObservableObject, CLLocationMa
 }
 
 struct LocationSelectionView: View {
+    @EnvironmentObject private var localization: LocalizationManager
     @Binding var selectedLocation: String
     @Binding var selectedLocationRadius: CLLocationDistance
     @Binding var selectedLatitude: Double?
@@ -216,7 +217,7 @@ struct LocationSelectionView: View {
                             .foregroundStyle(.blue.opacity(0.14))
                             .stroke(.blue.opacity(0.55), lineWidth: 2)
 
-                        Marker("Selected area", coordinate: selectedCoordinate)
+                        Marker(localization.text("location.selectedArea"), coordinate: selectedCoordinate)
                     }
                 }
                 .simultaneousGesture(
@@ -248,7 +249,7 @@ struct LocationSelectionView: View {
                         Image(systemName: "magnifyingglass")
                             .foregroundStyle(.white.opacity(0.72))
                         
-                        TextField("Search for a place (Shibuya, Tokyo...)", text: $searchText)
+                        TextField(localization.text("location.search.placeholder"), text: $searchText)
                             .foregroundStyle(.white)
                             .onChange(of: searchText) { _, newValue in
                                 searchService.updateQuery(newValue)
@@ -262,7 +263,7 @@ struct LocationSelectionView: View {
                             .stroke(Color.white.opacity(0.10), lineWidth: 1)
                     )
                     
-                    if !pendingSelection.isEmpty || !selectedLocation.isEmpty {
+                    if !pendingSelection.isEmpty || (!selectedLocation.isEmpty && selectedLocation != unselectedLocationToken) {
                         HStack(spacing: 8) {
                             Image(systemName: selectionSource == "search" ? "magnifyingglass.circle.fill" : "mappin.circle.fill")
                                 .foregroundStyle(.white.opacity(0.92))
@@ -281,7 +282,7 @@ struct LocationSelectionView: View {
                         Image(systemName: "hand.tap.fill")
                             .foregroundStyle(.white.opacity(0.78))
 
-                        Text("You can also tap directly on the map to choose an area.")
+                        Text(localization.text("location.tapMapHint"))
                             .font(.footnote)
                             .foregroundStyle(.white.opacity(0.70))
                             .lineLimit(2)
@@ -294,7 +295,7 @@ struct LocationSelectionView: View {
                 .padding(.bottom, 10)
 
                 // Suggestions/search results directly under search/selection area
-                Text(searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Suggested areas" : "Search results")
+                Text(searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? localization.text("location.section.suggested") : localization.text("location.section.results"))
                     .font(.title2.weight(.semibold))
                     .foregroundStyle(.white.opacity(0.82))
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -307,7 +308,7 @@ struct LocationSelectionView: View {
                                 HStack(spacing: 8) {
                                     Image(systemName: "magnifyingglass")
                                         .foregroundStyle(.white.opacity(0.7))
-                                    Text("No results yet")
+                                    Text(localization.text("location.noResultsYet"))
                                         .foregroundStyle(.white.opacity(0.72))
                                 }
                                 .padding(.horizontal, 14)
@@ -391,10 +392,10 @@ struct LocationSelectionView: View {
             VStack {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 12) {
-                    if (!selectedLocation.isEmpty && selectedLocation != "Choose an area") || (!pendingSelection.isEmpty && pendingSelection != "Choose an area") {
+                    if (!selectedLocation.isEmpty && selectedLocation != unselectedLocationToken) || (!pendingSelection.isEmpty && pendingSelection != unselectedLocationToken) {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
-                                Text("Search radius")
+                                Text(localization.text("location.searchRadius"))
                                     .font(.caption.weight(.semibold))
                                     .foregroundStyle(.white.opacity(0.78))
                                 
@@ -448,7 +449,7 @@ struct LocationSelectionView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             viewModel.requestLocation()
-            pendingSelection = selectedLocation
+            pendingSelection = selectedLocation == unselectedLocationToken ? "" : selectedLocation
             if selectedLocationRadius > 0 {
                 searchRadius = selectedLocationRadius
             }
@@ -515,7 +516,7 @@ struct LocationSelectionView: View {
             )
         }
 
-        pendingSelection = "Pinned area"
+        pendingSelection = localization.text("location.pinnedArea")
 
         Task {
             let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
@@ -556,7 +557,7 @@ struct LocationSelectionView: View {
     }
 
     private func fallbackLabel(for coordinate: CLLocationCoordinate2D) -> String {
-        "Pinned area (\(String(format: "%.4f", coordinate.latitude)), \(String(format: "%.4f", coordinate.longitude)))"
+        localization.text("location.pinnedAreaFormat", coordinate.latitude, coordinate.longitude)
     }
 }
 #Preview {
@@ -567,5 +568,6 @@ struct LocationSelectionView: View {
             selectedLatitude: .constant(35.6595),
             selectedLongitude: .constant(139.7005)
         )
+        .environmentObject(LocalizationManager.preview)
     }
 }

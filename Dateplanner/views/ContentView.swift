@@ -8,15 +8,18 @@
 import SwiftUI
 
 struct ContentView: View {
+    @EnvironmentObject private var localization: LocalizationManager
     let onStartPlanning: (() -> Void)?
 
     @State private var showPlanner = false
 
-    private let highlights: [(icon: String, title: String, subtitle: String)] = [
-        ("sparkles", "AI-crafted", "A date flow built around your vibe."),
-        ("mappin.circle.fill", "Nearby places", "Smart location picks around your area."),
-        ("heart.circle.fill", "Personal touch", "Budget, mood, and your own ideas included.")
-    ]
+    private var highlights: [(icon: String, title: String, subtitle: String)] {
+        [
+            ("sparkles", localization.text("content.highlight.ai.title"), localization.text("content.highlight.ai.subtitle")),
+            ("mappin.circle.fill", localization.text("content.highlight.nearby.title"), localization.text("content.highlight.nearby.subtitle")),
+            ("heart.circle.fill", localization.text("content.highlight.personal.title"), localization.text("content.highlight.personal.subtitle"))
+        ]
+    }
 
     init(onStartPlanning: (() -> Void)? = nil) {
         self.onStartPlanning = onStartPlanning
@@ -58,7 +61,7 @@ struct ContentView: View {
 
     private var heroHeaderSection: some View {
         VStack(spacing: 16) {
-            Text("AI Date Planner")
+            Text(localization.text("content.appTitle"))
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.80))
                 .padding(.horizontal, 12)
@@ -70,17 +73,17 @@ struct ContentView: View {
                 )
 
             VStack(spacing: 10) {
-                Text("Plan a date that")
+                Text(localization.text("content.hero.line1"))
                     .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
 
-                Text("actually feels right")
+                Text(localization.text("content.hero.line2"))
                     .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
             }
             .multilineTextAlignment(.center)
 
-            Text("Tell us your mood, budget, and area. We’ll turn that into a smooth, personalized date plan in seconds.")
+            Text(localization.text("content.hero.subtitle"))
                 .font(.subheadline)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.white.opacity(0.66))
@@ -140,28 +143,28 @@ struct ContentView: View {
 
                 VStack(alignment: .leading, spacing: 14) {
                     HStack(alignment: .top) {
-                        floatingBadge(icon: "sparkles", text: "AI suggestions")
+                        floatingBadge(icon: "sparkles", text: localization.text("content.badge.aiSuggestions"))
 
                         Spacer()
 
-                        floatingBadge(icon: "clock.fill", text: "Ready in seconds")
+                        floatingBadge(icon: "clock.fill", text: localization.text("content.badge.readyInSeconds"))
                     }
 
                     Spacer()
 
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("From mood to route")
+                        Text(localization.text("content.card.title"))
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(.white.opacity(0.92))
 
-                        Text("Find nearby spots, balance the vibe, and build a date plan with a natural rhythm.")
+                        Text(localization.text("content.card.subtitle"))
                             .font(.subheadline)
                             .foregroundStyle(.white.opacity(0.68))
                             .frame(maxWidth: 260, alignment: .leading)
 
                         HStack(spacing: 8) {
-                            featurePill(icon: "mappin.and.ellipse", text: "Local picks")
-                            featurePill(icon: "heart.text.square.fill", text: "Personalized")
+                            featurePill(icon: "mappin.and.ellipse", text: localization.text("content.card.localPicks"))
+                            featurePill(icon: "heart.text.square.fill", text: localization.text("content.card.personalized"))
                         }
                     }
                 }
@@ -238,11 +241,11 @@ struct ContentView: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Built for smooth date flow")
+                Text(localization.text("content.callout.title"))
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(.white)
 
-                Text("Not just random places. The app tries to create a route that feels easy and coherent.")
+                Text(localization.text("content.callout.subtitle"))
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.62))
                     .fixedSize(horizontal: false, vertical: true)
@@ -268,7 +271,7 @@ struct ContentView: View {
                 showPlanner = true
             } label: {
                 HStack(spacing: 12) {
-                    Text("Start planning")
+                    Text(localization.text("content.cta.startPlanning"))
                         .font(.headline.weight(.semibold))
 
                     Image(systemName: "arrow.right")
@@ -289,7 +292,7 @@ struct ContentView: View {
             }
             .buttonStyle(PressScaleStyle())
 
-            Text("Mood, budget, location. We handle the rest.")
+            Text(localization.text("content.cta.caption"))
                 .font(.footnote)
                 .foregroundStyle(.white.opacity(0.52))
         }
@@ -343,4 +346,5 @@ struct PressScaleStyle: ButtonStyle {
 
 #Preview {
     ContentView()
+        .environmentObject(LocalizationManager.preview)
 }
