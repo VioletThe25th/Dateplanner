@@ -183,7 +183,7 @@ struct DateGenerationPlanView: View {
                         } label: {
                             stopCard(for: stop, index: index)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(StopCardPressStyle())
 
                         if index < orderedStops.count - 1 {
                             timelineConnector
@@ -522,6 +522,16 @@ struct DateGenerationPlanView: View {
         } else {
             return [Color.blue.opacity(0.78), Color.purple.opacity(0.58)]
         }
+    }
+}
+
+private struct StopCardPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.985 : 1.0)
+            .brightness(configuration.isPressed ? -0.02 : 0)
+            .saturation(configuration.isPressed ? 0.96 : 1.0)
+            .animation(.spring(response: 0.24, dampingFraction: 0.78), value: configuration.isPressed)
     }
 }
 

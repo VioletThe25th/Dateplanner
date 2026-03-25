@@ -15,5 +15,6 @@ struct PlaceCandidate: Identifiable {
     let coordinate: CLLocationCoordinate2D
     let address: String
     let category: String
+    let group: String
     let distanceFromCenter: CLLocationDistance
 }
