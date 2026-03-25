@@ -178,7 +178,12 @@ struct DateGenerationPlanView: View {
             VStack(spacing: 0) {
                 ForEach(Array(orderedStops.enumerated()), id: \.offset) { index, stop in
                     VStack(spacing: 0) {
-                        stopCard(for: stop, index: index)
+                        NavigationLink {
+                            GeneratedStopDetailView(stop: stop)
+                        } label: {
+                            stopCard(for: stop, index: index)
+                        }
+                        .buttonStyle(.plain)
 
                         if index < orderedStops.count - 1 {
                             timelineConnector
@@ -257,6 +262,14 @@ struct DateGenerationPlanView: View {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .stroke(Color.white.opacity(0.06), lineWidth: 1)
                 )
+
+                HStack(spacing: 8) {
+                    Text("View details")
+                        .font(.caption.weight(.semibold))
+                    Image(systemName: "arrow.right")
+                        .font(.caption.weight(.bold))
+                }
+                .foregroundStyle(.white.opacity(0.62))
             }
         }
         .padding(16)
@@ -301,49 +314,38 @@ struct DateGenerationPlanView: View {
     }
 
     private func stopImage(for stop: GeneratedDateStop, index: Int) -> some View {
-        ZStack(alignment: .topLeading) {
-            if let imageURL = stop.imageURL, let url = URL(string: imageURL) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .empty:
-                        placeholderImage(for: stop)
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    case .failure:
-                        placeholderImage(for: stop)
-                    @unknown default:
-                        placeholderImage(for: stop)
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let height = proxy.size.height
+
+            ZStack(alignment: .topLeading) {
+                stopImageContent(for: stop, width: width, height: height)
+
+                HStack(spacing: 8) {
+                    Text("\(index + 1)")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.black.opacity(0.92))
+                        .frame(width: 28, height: 28)
+                        .background(
+                            Circle()
+                                .fill(Color.white)
+                        )
+
+                    if let estimatedPrice = stop.estimatedPrice {
+                        HStack(spacing: 4) {
+                            Image(systemName: "yensign.circle.fill")
+                            Text("\(estimatedPrice)")
+                        }
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.92))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                        .background(.ultraThinMaterial, in: Capsule(style: .continuous))
                     }
                 }
-            } else {
-                placeholderImage(for: stop)
+                .padding(12)
             }
-
-            HStack(spacing: 8) {
-                Text("\(index + 1)")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.black.opacity(0.92))
-                    .frame(width: 28, height: 28)
-                    .background(
-                        Circle()
-                            .fill(Color.white)
-                    )
-
-                if let estimatedPrice = stop.estimatedPrice {
-                    HStack(spacing: 4) {
-                        Image(systemName: "yensign.circle.fill")
-                        Text("\(estimatedPrice)")
-                    }
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.92))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .background(.ultraThinMaterial, in: Capsule(style: .continuous))
-                }
-            }
-            .padding(12)
+            .frame(width: width, height: height)
         }
         .frame(height: 194)
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -353,8 +355,35 @@ struct DateGenerationPlanView: View {
         )
     }
 
+    private func stopImageContent(for stop: GeneratedDateStop, width: CGFloat, height: CGFloat) -> some View {
+        Group {
+            if let imageURL = stop.imageURL, let url = URL(string: imageURL) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        placeholderImage(for: stop, width: width, height: height)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: width, height: height)
+                            .clipped()
+                    case .failure:
+                        placeholderImage(for: stop, width: width, height: height)
+                    @unknown default:
+                        placeholderImage(for: stop, width: width, height: height)
+                    }
+                }
+            } else {
+                placeholderImage(for: stop, width: width, height: height)
+            }
+        }
+        .frame(width: width, height: height)
+        .clipped()
+    }
+
     @ViewBuilder
-    private func placeholderImage(for stop: GeneratedDateStop) -> some View {
+    private func placeholderImage(for stop: GeneratedDateStop, width: CGFloat, height: CGFloat) -> some View {
         let category = stop.category?.lowercased() ?? ""
         let icon = iconName(for: category)
         let gradient = gradientColors(for: category)
@@ -375,6 +404,7 @@ struct DateGenerationPlanView: View {
                 .font(.title.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.92))
         }
+        .frame(width: width, height: height)
     }
 
     private func infoPill(icon: String, text: String) -> some View {

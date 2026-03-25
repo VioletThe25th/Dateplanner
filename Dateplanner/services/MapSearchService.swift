@@ -69,7 +69,7 @@ final class MapSearchService {
         case .chill:
             return ["bar", "pub", "ice cream parlor", "ice cream shop", "ice cream stand", "cafe", "park", "bookstore", "cinema", "coffee shop"]
         case .romantic:
-            return ["romantic restaurant", "wine bar", "cafe", "aquarium", "cinema"]
+            return ["romantic restaurant", "wine bar", "cafe", "aquarium", "cinema", "sushi bar ", "museum", "sushi", "restaurant"]
         case .fun:
             return ["arcade", "karaoke", "bowling", "casino", "casino room"]
         case .adventure:

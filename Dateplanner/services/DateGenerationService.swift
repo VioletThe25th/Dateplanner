@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CoreLocation
 
 final class DateGenerationService {
     private let session: URLSession
@@ -63,10 +64,82 @@ final class DateGenerationService {
         #endif
 
         do {
-            return try decoder.decode(GeneratedDatePlan.self, from: data)
+            let plan = try decoder.decode(GeneratedDatePlan.self, from: data)
+            return enrich(plan, with: places)
         } catch {
             throw DateGenerationError.decodingFailed(underlyingError: error)
         }
+    }
+
+    private func enrich(_ plan: GeneratedDatePlan, with places: [PlaceCandidate]) -> GeneratedDatePlan {
+        let enrichedStops = plan.stops.map { stop in
+            guard !hasValidCoordinate(stop), let matchedPlace = matchingPlace(for: stop, in: places) else {
+                return stop
+            }
+
+            return GeneratedDateStop(
+                name: stop.name,
+                description: stop.description,
+                order: stop.order,
+                reason: stop.reason,
+                imageURL: stop.imageURL,
+                category: resolvedText(stop.category, fallback: matchedPlace.category),
+                address: resolvedText(stop.address, fallback: matchedPlace.address),
+                latitude: matchedPlace.coordinate.latitude,
+                longitude: matchedPlace.coordinate.longitude,
+                estimatedPrice: stop.estimatedPrice
+            )
+        }
+
+        return GeneratedDatePlan(
+            title: plan.title,
+            summary: plan.summary,
+            stops: enrichedStops
+        )
+    }
+
+    private func hasValidCoordinate(_ stop: GeneratedDateStop) -> Bool {
+        let coordinate = CLLocationCoordinate2D(latitude: stop.latitude, longitude: stop.longitude)
+        return CLLocationCoordinate2DIsValid(coordinate) && (stop.latitude != 0 || stop.longitude != 0)
+    }
+
+    private func matchingPlace(for stop: GeneratedDateStop, in places: [PlaceCandidate]) -> PlaceCandidate? {
+        let stopName = normalized(stop.name)
+        let stopAddress = normalized(stop.address ?? "")
+
+        let exactNameMatches = places.filter { normalized($0.name) == stopName }
+        if let exactAddressMatch = exactNameMatches.first(where: { normalized($0.address) == stopAddress && !stopAddress.isEmpty }) {
+            return exactAddressMatch
+        }
+        if let firstExactNameMatch = exactNameMatches.first {
+            return firstExactNameMatch
+        }
+
+        if !stopAddress.isEmpty {
+            let addressMatches = places.filter { normalized($0.address) == stopAddress }
+            if let firstAddressMatch = addressMatches.first {
+                return firstAddressMatch
+            }
+        }
+
+        return places.first {
+            let placeName = normalized($0.name)
+            return placeName.contains(stopName) || stopName.contains(placeName)
+        }
+    }
+
+    private func normalized(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .lowercased()
+    }
+
+    private func resolvedText(_ value: String?, fallback: String) -> String {
+        guard let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return fallback
+        }
+        return value
     }
 }
 
@@ -96,12 +169,16 @@ private struct PlacePayload: Encodable {
     let category: String
     let distanceFromCenter: Double
     let address: String
+    let latitude: Double
+    let longitude: Double
 
     init(_ place: PlaceCandidate) {
         self.name = place.name
         self.category = place.category
         self.distanceFromCenter = place.distanceFromCenter
         self.address = place.address
+        self.latitude = place.coordinate.latitude
+        self.longitude = place.coordinate.longitude
     }
 }
 
