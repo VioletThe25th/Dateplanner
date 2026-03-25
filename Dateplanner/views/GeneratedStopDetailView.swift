@@ -13,6 +13,7 @@ struct GeneratedStopDetailView: View {
 
     @Environment(\.openURL) private var openURL
     @State private var mapPosition: MapCameraPosition
+    @State private var isShowingMapOptions = false
 
     init(stop: GeneratedDateStop) {
         self.stop = stop
@@ -83,20 +84,21 @@ struct GeneratedStopDetailView: View {
     var body: some View {
         bodyContent
             .navigationBarTitleDisplayMode(.inline)
+            .confirmationDialog("Open location in", isPresented: $isShowingMapOptions, titleVisibility: .visible) {
+                Button("Apple Maps") {
+                    openInAppleMaps()
+                }
+
+                Button("Google Maps") {
+                    openInGoogleMaps()
+                }
+
+                Button("Cancel", role: .cancel) {}
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button {
-                            openInAppleMaps()
-                        } label: {
-                            Label("Open in Apple Maps", systemImage: "map.fill")
-                        }
-
-                        Button {
-                            openInGoogleMaps()
-                        } label: {
-                            Label("Open in Google Maps", systemImage: "globe")
-                        }
+                    Button {
+                        isShowingMapOptions = true
                     } label: {
                         Image(systemName: "ellipsis")
                             .font(.headline.weight(.bold))
@@ -415,37 +417,35 @@ struct GeneratedStopDetailView: View {
             sectionTitle("Location Preview")
 
             if hasValidCoordinate {
-                Button {
-                    openInAppleMaps()
-                } label: {
-                    ZStack(alignment: .bottomLeading) {
-                        Map(position: $mapPosition) {
-                            Marker(stop.name, coordinate: coordinate)
-                        }
-                        .mapStyle(.standard(elevation: .realistic))
-                        .environment(\.colorScheme, .dark)
-                        .allowsHitTesting(false)
-                        .frame(height: 260)
-
-                        HStack(spacing: 8) {
-                            Image(systemName: "map.fill")
-                            Text("Tap to open in Maps")
-                                .lineLimit(1)
-                        }
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.94))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 9)
-                        .background(.ultraThinMaterial, in: Capsule(style: .continuous))
-                        .overlay(
-                            Capsule(style: .continuous)
-                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                        )
-                        .padding(16)
+                ZStack(alignment: .bottomLeading) {
+                    Map(position: $mapPosition) {
+                        Marker(stop.name, coordinate: coordinate)
                     }
+                    .mapStyle(.standard(elevation: .realistic))
+                    .environment(\.colorScheme, .dark)
+                    .allowsHitTesting(false)
+                    .frame(height: 260)
+
+                    HStack(spacing: 8) {
+                        Image(systemName: "map.fill")
+                        Text("Tap to open in Maps")
+                            .lineLimit(1)
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.94))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 9)
+                    .background(.ultraThinMaterial, in: Capsule(style: .continuous))
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+                    .padding(16)
                 }
-                .buttonStyle(.plain)
                 .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .onTapGesture {
+                    openInAppleMaps()
+                }
                 .frame(maxWidth: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 .overlay(

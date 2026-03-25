@@ -257,6 +257,7 @@ struct DatePickerView: View {
     @State private var showGeneratedPlan = false
     @State private var isGeneratingPlan = false
     @State private var generationErrorMessage: String? = nil
+    @State private var hasInitializedBudgetState = false
     @FocusState private var isIdeasFieldFocused: Bool
 
     private let mapSearchService = MapSearchService()
@@ -566,8 +567,11 @@ struct DatePickerView: View {
                     .padding(.bottom, 16)
             }
             .onAppear {
-                budget = defaultBudget(for: selectedCurrency)
-                selectedBudget = Int(budget)
+                if !hasInitializedBudgetState {
+                    budget = defaultBudget(for: selectedCurrency)
+                    selectedBudget = Int(budget)
+                    hasInitializedBudgetState = true
+                }
                 updateMapPreviewCamera()
             }
             .onChange(of: budget) { _, newValue in
