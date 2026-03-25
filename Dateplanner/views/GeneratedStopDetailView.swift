@@ -13,7 +13,6 @@ struct GeneratedStopDetailView: View {
 
     @Environment(\.openURL) private var openURL
     @State private var mapPosition: MapCameraPosition
-    @State private var isShowingMapOptions = false
 
     init(stop: GeneratedDateStop) {
         self.stop = stop
@@ -84,33 +83,6 @@ struct GeneratedStopDetailView: View {
     var body: some View {
         bodyContent
             .navigationBarTitleDisplayMode(.inline)
-            .confirmationDialog("Open location in", isPresented: $isShowingMapOptions, titleVisibility: .visible) {
-                Button("Apple Maps") {
-                    openInAppleMaps()
-                }
-
-                Button("Google Maps") {
-                    openInGoogleMaps()
-                }
-
-                Button("Cancel", role: .cancel) {}
-            }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        isShowingMapOptions = true
-                    } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.headline.weight(.bold))
-                            .foregroundStyle(.black.opacity(0.92))
-                            .frame(width: 38, height: 38)
-                            .background(
-                                Circle()
-                                    .fill(Color.white)
-                            )
-                    }
-                }
-            }
             .preferredColorScheme(.dark)
     }
 
@@ -452,6 +424,21 @@ struct GeneratedStopDetailView: View {
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .stroke(Color.white.opacity(0.08), lineWidth: 1)
                 )
+
+                HStack(spacing: 6) {
+                    Text("Prefer Google Maps?")
+                        .foregroundStyle(.white.opacity(0.50))
+
+                    Button {
+                        openInGoogleMaps()
+                    } label: {
+                        Text("Open there")
+                            .foregroundStyle(.white.opacity(0.82))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .font(.footnote)
+                .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(Color.white.opacity(0.06))
