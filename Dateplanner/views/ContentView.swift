@@ -8,11 +8,19 @@
 import SwiftUI
 
 struct ContentView: View {
+    let onStartPlanning: (() -> Void)?
+
+    @State private var showPlanner = false
+
     private let highlights: [(icon: String, title: String, subtitle: String)] = [
         ("sparkles", "AI-crafted", "A date flow built around your vibe."),
         ("mappin.circle.fill", "Nearby places", "Smart location picks around your area."),
         ("heart.circle.fill", "Personal touch", "Budget, mood, and your own ideas included.")
     ]
+
+    init(onStartPlanning: (() -> Void)? = nil) {
+        self.onStartPlanning = onStartPlanning
+    }
 
     var body: some View {
         NavigationStack {
@@ -41,6 +49,9 @@ struct ContentView: View {
                     .padding(.bottom, 16)
             }
             .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(isPresented: $showPlanner) {
+                DatePickerView()
+            }
             .preferredColorScheme(.dark)
         }
     }
@@ -252,8 +263,9 @@ struct ContentView: View {
 
     private var bottomCTA: some View {
         VStack(spacing: 10) {
-            NavigationLink {
-                DatePickerView()
+            Button {
+                onStartPlanning?()
+                showPlanner = true
             } label: {
                 HStack(spacing: 12) {
                     Text("Start planning")
