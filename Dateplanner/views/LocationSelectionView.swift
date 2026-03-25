@@ -208,17 +208,27 @@ struct LocationSelectionView: View {
                 endPoint: .bottomTrailing
             )
             .ignoresSafeArea()
-            Map(position: $mapCameraPosition) {
-                if let selectedCoordinate {
-                    MapCircle(center: selectedCoordinate, radius: searchRadius)
-                        .foregroundStyle(.blue.opacity(0.14))
-                        .stroke(.blue.opacity(0.55), lineWidth: 2)
-                    
-                    Marker("Selected area", coordinate: selectedCoordinate)
+
+            MapReader { proxy in
+                Map(position: $mapCameraPosition) {
+                    if let selectedCoordinate {
+                        MapCircle(center: selectedCoordinate, radius: searchRadius)
+                            .foregroundStyle(.blue.opacity(0.14))
+                            .stroke(.blue.opacity(0.55), lineWidth: 2)
+
+                        Marker("Selected area", coordinate: selectedCoordinate)
+                    }
                 }
+                .simultaneousGesture(
+                    SpatialTapGesture()
+                        .onEnded { value in
+                            guard let coordinate = proxy.convert(value.location, from: .local) else { return }
+                            selectLocationFromMap(at: coordinate)
+                        }
+                )
+                .mapStyle(.standard(elevation: .realistic))
+                .ignoresSafeArea()
             }
-            .mapStyle(.standard(elevation: .realistic))
-            .ignoresSafeArea()
             
             LinearGradient(
                 colors: [
@@ -265,6 +275,18 @@ struct LocationSelectionView: View {
                         .padding(.horizontal, 12)
                         .padding(.vertical, 10)
                         .background(.ultraThinMaterial, in: Capsule(style: .continuous))
+                    }
+
+                    HStack(spacing: 8) {
+                        Image(systemName: "hand.tap.fill")
+                            .foregroundStyle(.white.opacity(0.78))
+
+                        Text("You can also tap directly on the map to choose an area.")
+                            .font(.footnote)
+                            .foregroundStyle(.white.opacity(0.70))
+                            .lineLimit(2)
+
+                        Spacer(minLength: 0)
                     }
                 }
                 .padding(.horizontal, 20)
@@ -433,6 +455,7 @@ struct LocationSelectionView: View {
             updateMapPreview(for: selectedLocation)
         }
         .onChange(of: pendingSelection) { _, newValue in
+            guard selectionSource != "map" else { return }
             updateMapPreview(for: newValue)
         }
     }
@@ -476,6 +499,64 @@ struct LocationSelectionView: View {
                 }
             }
         }
+    }
+
+    private func selectLocationFromMap(at coordinate: CLLocationCoordinate2D) {
+        searchText = ""
+        selectionSource = "map"
+
+        withAnimation(.easeInOut(duration: 0.35)) {
+            selectedCoordinate = coordinate
+            mapCameraPosition = .region(
+                MKCoordinateRegion(
+                    center: coordinate,
+                    span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+                )
+            )
+        }
+
+        pendingSelection = "Pinned area"
+
+        Task {
+            let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+
+            do {
+                guard let request = MKReverseGeocodingRequest(location: location) else {
+                    await MainActor.run {
+                        pendingSelection = fallbackLabel(for: coordinate)
+                    }
+                    return
+                }
+
+                let mapItems = try await request.mapItems
+                let formattedName = mapItems.first.flatMap(formattedAreaName(for:))
+
+                await MainActor.run {
+                    pendingSelection = formattedName ?? fallbackLabel(for: coordinate)
+                }
+            } catch {
+                await MainActor.run {
+                    pendingSelection = fallbackLabel(for: coordinate)
+                }
+            }
+        }
+    }
+
+    private func formattedAreaName(for mapItem: MKMapItem) -> String? {
+        let candidates = [
+            mapItem.name,
+            mapItem.address?.shortAddress,
+            mapItem.addressRepresentations?.cityWithContext,
+            mapItem.address?.fullAddress
+        ]
+        .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+        .filter { !$0.isEmpty }
+
+        return candidates.first
+    }
+
+    private func fallbackLabel(for coordinate: CLLocationCoordinate2D) -> String {
+        "Pinned area (\(String(format: "%.4f", coordinate.latitude)), \(String(format: "%.4f", coordinate.longitude)))"
     }
 }
 #Preview {
