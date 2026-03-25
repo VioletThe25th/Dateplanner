@@ -10,11 +10,13 @@ import SwiftUI
 @main
 struct DateplannerApp: App {
     @StateObject private var localization = LocalizationManager()
+    @StateObject private var currencyManager = CurrencyManager()
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(localization)
+                .environmentObject(currencyManager)
         }
     }
 }

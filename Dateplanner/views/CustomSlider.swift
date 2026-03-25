@@ -10,6 +10,7 @@ import SwiftUI
 struct CustomSlider: View {
     @Binding var value: Double
     let range: ClosedRange<Double>
+    let step: Double
     
     var body: some View {
         GeometryReader { geo in
@@ -46,8 +47,7 @@ struct CustomSlider: View {
                                 let x = max(0, min(width, gesture.location.x))
                                 let percent = x / width
                                 let newValue = range.lowerBound + Double(percent) * (range.upperBound - range.lowerBound)
-                                let step: Double = range.upperBound <= 100 ? 5 : 100
-                                let snapped = (newValue / step).rounded() * step
+                                let snapped = (((newValue - range.lowerBound) / step).rounded() * step) + range.lowerBound
                                 let clamped = min(max(snapped, range.lowerBound), range.upperBound)
                                 value = clamped
                             }
@@ -59,5 +59,5 @@ struct CustomSlider: View {
 }
 
 #Preview {
-    CustomSlider(value: .constant(5000), range: 2000...10000)
+    CustomSlider(value: .constant(5000), range: 2000...10000, step: 100)
 }

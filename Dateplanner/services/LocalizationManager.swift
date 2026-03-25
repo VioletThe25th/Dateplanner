@@ -206,6 +206,9 @@ private extension LocalizationManager {
             "options.language.title": "App language",
             "options.language.subtitle": "The app starts in your device language when available, and falls back to English otherwise.",
             "options.language.current": "Current language",
+            "options.currency.title": "Currency",
+            "options.currency.subtitle": "The budget uses your device region by default, but you can change it here anytime.",
+            "options.currency.current": "Current currency",
             "options.launch.title": "Launch behavior",
             "options.launch.subtitle": "The introduction screen is shown only on the first launch. After that, the app opens directly on the planner."
         ],
@@ -322,6 +325,9 @@ private extension LocalizationManager {
             "options.language.title": "Langue de l’app",
             "options.language.subtitle": "L’app démarre dans la langue de l’appareil si elle est disponible, sinon en anglais.",
             "options.language.current": "Langue actuelle",
+            "options.currency.title": "Devise",
+            "options.currency.subtitle": "Le budget suit par défaut la région de l’appareil, mais vous pouvez la changer ici à tout moment.",
+            "options.currency.current": "Devise actuelle",
             "options.launch.title": "Comportement au lancement",
             "options.launch.subtitle": "L’écran de présentation s’affiche uniquement au premier lancement. Ensuite, l’app ouvre directement le planificateur."
         ],
@@ -438,6 +444,9 @@ private extension LocalizationManager {
             "options.language.title": "Idioma de la app",
             "options.language.subtitle": "La app se inicia en el idioma del dispositivo cuando está disponible y usa inglés si no lo está.",
             "options.language.current": "Idioma actual",
+            "options.currency.title": "Moneda",
+            "options.currency.subtitle": "El presupuesto usa por defecto la región del dispositivo, pero puedes cambiar la moneda aquí cuando quieras.",
+            "options.currency.current": "Moneda actual",
             "options.launch.title": "Comportamiento al abrir",
             "options.launch.subtitle": "La pantalla de presentación se muestra solo la primera vez. Después, la app abre directamente el planificador."
         ],
@@ -554,6 +563,9 @@ private extension LocalizationManager {
             "options.language.title": "アプリの言語",
             "options.language.subtitle": "利用可能な場合は端末の言語で起動し、未対応なら英語になります。",
             "options.language.current": "現在の言語",
+            "options.currency.title": "通貨",
+            "options.currency.subtitle": "予算の通貨は端末の地域設定が初期値になりますが、ここでいつでも変更できます。",
+            "options.currency.current": "現在の通貨",
             "options.launch.title": "起動時の動作",
             "options.launch.subtitle": "紹介画面は初回起動時のみ表示されます。その後はプラン作成画面が直接開きます。"
         ],
@@ -670,6 +682,9 @@ private extension LocalizationManager {
             "options.language.title": "应用语言",
             "options.language.subtitle": "应用会优先使用设备语言；如果不支持，则默认使用英语。",
             "options.language.current": "当前语言",
+            "options.currency.title": "货币",
+            "options.currency.subtitle": "预算默认跟随设备所在地区的货币，但你也可以随时在这里修改。",
+            "options.currency.current": "当前货币",
             "options.launch.title": "启动行为",
             "options.launch.subtitle": "介绍页只会在第一次打开应用时显示，之后会直接进入规划页面。"
         ],
@@ -786,6 +801,9 @@ private extension LocalizationManager {
             "options.language.title": "앱 언어",
             "options.language.subtitle": "가능하면 기기 언어로 시작하고, 지원되지 않으면 영어로 시작합니다.",
             "options.language.current": "현재 언어",
+            "options.currency.title": "통화",
+            "options.currency.subtitle": "예산 통화는 기본적으로 기기 지역 설정을 따르지만, 여기서 언제든지 변경할 수 있습니다.",
+            "options.currency.current": "현재 통화",
             "options.launch.title": "실행 방식",
             "options.launch.subtitle": "소개 화면은 첫 실행 때만 표시되며, 이후에는 바로 플래너가 열립니다."
         ]

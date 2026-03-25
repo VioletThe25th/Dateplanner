@@ -151,13 +151,15 @@ private struct GenerateDatePlanPayload: Encodable {
 private struct RequestPayload: Encodable {
     let budget: Int
     let currency: String
+    let currencyCode: String
     let locationName: String
     let mood: String
     let ideasForLLM: String
 
     init(from request: DateRequestData) {
         self.budget = request.budget
-        self.currency = request.currency.rawValue
+        self.currency = request.currency.symbol
+        self.currencyCode = request.currency.code
         self.locationName = request.locationName
         self.mood = request.mood.rawValue
         self.ideasForLLM = request.ideasForLLM

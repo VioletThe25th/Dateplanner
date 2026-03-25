@@ -19,116 +19,49 @@ enum DateMood: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-enum CurrencyOption: String, CaseIterable, Identifiable {
-    case yen = "¥"
-    case dollar = "$"
-    case euro = "€"
-
-    var id: String { rawValue }
-}
-
 private struct CurrencyPressPicker: View {
+    @EnvironmentObject private var localization: LocalizationManager
     @Binding var selectedCurrency: CurrencyOption
-    @State private var isExpanded = false
-    @State private var hoveredCurrency: CurrencyOption? = nil
-
-    private let itemSize: CGFloat = 40
-    private let itemSpacing: CGFloat = 8
-    private let menuPadding: CGFloat = 8
-
-    private var menuWidth: CGFloat {
-        let count = CGFloat(CurrencyOption.allCases.count)
-        return (count * itemSize) + ((count - 1) * itemSpacing) + (menuPadding * 2)
-    }
-
-    private var currencyMenu: some View {
-        HStack(spacing: itemSpacing) {
-            ForEach(CurrencyOption.allCases) { currency in
-                let isHovered = hoveredCurrency == currency
-
-                Text(currency.rawValue)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(isHovered ? Color.black.opacity(0.92) : Color.white.opacity(0.92))
-                    .frame(width: itemSize, height: itemSize)
-                    .background(
-                        Circle()
-                            .fill(isHovered ? Color.white : Color.white.opacity(0.10))
-                    )
-            }
-        }
-        .padding(menuPadding)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.white.opacity(0.10), lineWidth: 1)
-        )
-        .offset(y: itemSize + 24)
-        .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .bottomTrailing)))
-    }
 
     var body: some View {
-        Text(selectedCurrency.rawValue)
-            .font(.headline.weight(.semibold))
-            .foregroundStyle(.white.opacity(0.92))
-            .frame(width: 42, height: 42)
-            .background(.ultraThinMaterial, in: Circle())
-            .overlay(
-                Circle()
-                    .stroke(Color.white.opacity(0.10), lineWidth: 1)
-            )
-            .overlay(alignment: .bottomTrailing) {
-                if isExpanded {
-                    currencyMenu
+        Menu {
+            ForEach(CurrencyOption.plannerCases) { currency in
+                Button {
+                    selectedCurrency = currency
+                } label: {
+                    HStack(spacing: 10) {
+                        Text("\(currency.symbol) \(currency.code)")
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(currency.displayName(localeIdentifier: localization.language.localeIdentifier))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        if selectedCurrency == currency {
+                            Image(systemName: "checkmark")
+                        }
+                    }
                 }
             }
-            .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { value in
-                        if !isExpanded {
-                            isExpanded = true
-                        }
-                        hoveredCurrency = currency(at: value.location)
-                    }
-                    .onEnded { value in
-                        if let currency = currency(at: value.location) {
-                            selectedCurrency = currency
-                        }
-                        hoveredCurrency = nil
-                        withAnimation(.easeOut(duration: 0.18)) {
-                            isExpanded = false
-                        }
-                    }
+        } label: {
+            HStack(spacing: 8) {
+                Text("\(selectedCurrency.symbol) \(selectedCurrency.code)")
+                    .font(.headline.weight(.semibold))
+
+                Image(systemName: "chevron.down")
+                    .font(.caption.weight(.bold))
+            }
+            .foregroundStyle(.white.opacity(0.92))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 11)
+            .background(.ultraThinMaterial, in: Capsule(style: .continuous))
+            .overlay(
+                Capsule(style: .continuous)
+                    .stroke(Color.white.opacity(0.10), lineWidth: 1)
             )
-            .animation(.easeInOut(duration: 0.18), value: isExpanded)
-    }
-
-    private func currency(at location: CGPoint) -> CurrencyOption? {
-        let menuHeight: CGFloat = itemSize + (menuPadding * 2)
-        let menuMinX: CGFloat = 42 - menuWidth
-        let menuMaxX: CGFloat = 42
-        let menuMinY: CGFloat = 42 + 10
-        let menuMaxY: CGFloat = menuMinY + menuHeight
-
-        guard location.x >= menuMinX,
-              location.x <= menuMaxX,
-              location.y >= menuMinY,
-              location.y <= menuMaxY else {
-            return nil
         }
-
-        let relativeX = location.x - menuMinX - menuPadding
-        let slotWidth = itemSize + itemSpacing
-        let index = Int(relativeX / slotWidth)
-
-        guard index >= 0, index < CurrencyOption.allCases.count else { return nil }
-
-        let slotStartX = CGFloat(index) * slotWidth
-        let xInsideSlot = relativeX - slotStartX
-
-        guard xInsideSlot >= 0, xInsideSlot <= itemSize else { return nil }
-
-        return CurrencyOption.allCases[index]
+        .buttonStyle(.plain)
     }
 }
 
@@ -244,9 +177,9 @@ private struct MapPreview: View {
 
 struct DatePickerView: View {
     @EnvironmentObject private var localization: LocalizationManager
+    @EnvironmentObject private var currencyManager: CurrencyManager
     @State private var budget: Double = 5000
     @State private var selectedBudget: Int = 5000
-    @State private var selectedCurrency: CurrencyOption = .yen
     @State private var selectedLocation: String = unselectedLocationToken
     @State private var selectedLocationRadius: CLLocationDistance = 1500
     @State private var selectedLatitude: Double? = nil
@@ -316,6 +249,17 @@ struct DatePickerView: View {
         selectedLocation == unselectedLocationToken
     }
 
+    private var selectedCurrency: CurrencyOption {
+        currencyManager.currency
+    }
+
+    private var selectedCurrencyBinding: Binding<CurrencyOption> {
+        Binding(
+            get: { currencyManager.currency },
+            set: { currencyManager.setCurrency($0) }
+        )
+    }
+
     private func localizedMissingList(_ values: [String]) -> String {
         if values.count <= 1 {
             return values.first ?? ""
@@ -342,11 +286,11 @@ struct DatePickerView: View {
 
                 Spacer(minLength: 16)
 
-                CurrencyPressPicker(selectedCurrency: $selectedCurrency)
+                CurrencyPressPicker(selectedCurrency: selectedCurrencyBinding)
             }
 
             HStack(alignment: .lastTextBaseline, spacing: 6) {
-                Text(selectedCurrency.rawValue)
+                Text(selectedCurrency.symbol)
                     .font(.title2.weight(.bold))
                     .foregroundStyle(.white.opacity(0.86))
 
@@ -355,12 +299,12 @@ struct DatePickerView: View {
                     .foregroundStyle(.white)
             }
 
-            CustomSlider(value: $budget, range: budgetRange)
+            CustomSlider(value: $budget, range: budgetRange, step: selectedCurrency.budgetStep)
 
             HStack {
-                Text("\(selectedCurrency.rawValue)\(Int(budgetRange.lowerBound))")
+                Text("\(selectedCurrency.symbol)\(Int(budgetRange.lowerBound))")
                 Spacer()
-                Text("\(selectedCurrency.rawValue)\(Int(budgetRange.upperBound))")
+                Text("\(selectedCurrency.symbol)\(Int(budgetRange.upperBound))")
             }
             .font(.caption.weight(.medium))
             .foregroundStyle(.white.opacity(0.48))
@@ -593,7 +537,7 @@ struct DatePickerView: View {
             }
             .onAppear {
                 if !hasInitializedBudgetState {
-                    budget = defaultBudget(for: selectedCurrency)
+                    budget = selectedCurrency.defaultBudget
                     selectedBudget = Int(budget)
                     hasInitializedBudgetState = true
                 }
@@ -602,9 +546,9 @@ struct DatePickerView: View {
             .onChange(of: budget) { _, newValue in
                 selectedBudget = Int(newValue)
             }
-            .onChange(of: selectedCurrency) { oldValue, newValue in
+            .onChange(of: currencyManager.currency) { oldValue, newValue in
                 if oldValue != newValue {
-                    budget = defaultBudget(for: newValue)
+                    budget = newValue.defaultBudget
                     selectedBudget = Int(budget)
                 }
             }
@@ -686,7 +630,7 @@ struct DatePickerView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    summaryPill(icon: "banknote.fill", text: "\(selectedCurrency.rawValue)\(selectedBudget)")
+                    summaryPill(icon: "banknote.fill", text: "\(selectedCurrency.code) \(selectedBudget)")
                     summaryPill(icon: "mappin.and.ellipse", text: isLocationUnselected ? localization.text("datePicker.header.noAreaYet") : selectedLocation)
                     summaryPill(icon: "heart.text.square.fill", text: selectedMood.map(localization.moodName) ?? localization.text("datePicker.header.noMoodYet"))
                 }
@@ -735,21 +679,7 @@ struct DatePickerView: View {
     }
 
     private var budgetRange: ClosedRange<Double> {
-        switch selectedCurrency {
-        case .yen:
-            return 2000...10000
-        case .dollar, .euro:
-            return 20...100
-        }
-    }
-
-    private func defaultBudget(for currency: CurrencyOption) -> Double {
-        switch currency {
-        case .yen:
-            return 5000
-        case .dollar, .euro:
-            return 50
-        }
+        selectedCurrency.budgetRange
     }
 
     private func startDateGeneration() {
@@ -853,5 +783,6 @@ struct DatePickerView: View {
     NavigationStack {
         DatePickerView(debugMock: true)
             .environmentObject(LocalizationManager.preview)
+            .environmentObject(CurrencyManager.preview)
     }
 }
